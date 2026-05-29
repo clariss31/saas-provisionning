@@ -1,26 +1,196 @@
 @import "tailwindcss";
 
+/* ══════════════════════════════════════════════════════
+   KALEÏDO DESIGN TOKENS
+   Source : custom Dolibarr module "kaleido" (cf. DESIGN.md)
+   ══════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Roboto:wght@400;500;700&display=swap');
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* ── Surfaces & texte ── */
+  --color-page:          #ffffff;
+  --color-surface:       #ffffff;
+  --color-content:       #f8f4fb; /* fond du panneau de contenu (lavande très clair) */
+  --color-icon-bg:       #f8f4fb;
+  --color-menu-bg:       #ffffff;
+  --color-topbar-bg:     #ffffff;
+
+  --color-text:          #1F1F2E;
+  --color-soft:          #6B7280;
+  --color-muted:         #9CA3AF;
+  --color-muted-light:   #f2f4f7;
+  --color-icon-color:    #b0a8d4;
+
+  --color-border:        #ede8f5;
+  --color-border-dark:   #e0dee6;
+  --color-border-light:  #f5f2f9;
+
+  /* ── Accent (primary) ── */
+  --color-accent:        #6C63F0;
+  --color-accent-light:  #EDE9FE;
+  --color-primary:       var(--color-accent);
+  --color-primary-light: var(--color-accent-light);
+
+  /* ── Palette sémantique (chaque couleur a sa variante "light") ── */
+  --color-success:       #1d9e75;
+  --color-success-light: #e6f7f2;
+  --color-warning:       #eb7413;
+  --color-warning-light: #fdf2e9;
+  --color-info:          #378add;
+  --color-info-light:    #e8f2fd;
+  --color-danger:        #dc2626;
+  --color-danger-light:  #fff1f2;
+  --color-pink:          #ec4899;
+  --color-pink-light:    #fdf2f7;
+  --color-yellow:        #ef9f27;
+  --color-yellow-light:  #fef9ec;
+  --color-purple:        #8b5cf6;
+  --color-purple-light:  #f5f3ff;
+  --color-teal:          #14b8a6;
+  --color-teal-light:    #f0fdfa;
+  --color-dark:          #3e3d54;
+  --color-dark-light:    #f4f4f7;
+  --color-ghost:         #edebef;
+  --color-ghost-light:   #f7f6f8;
+
+  /* ── Layout ── */
+  --layout-icon-w:    80px;
+  --layout-menu-w:    260px;
+  --layout-topbar-h:  80px;
+  --layout-gap:       16px;
+
+  /* ── Radius ── */
+  --radius-sm:   6px;
+  --radius-md:   8px;   /* défaut */
+  --radius-lg:   12px;  /* inputs */
+  --radius-xl:   14px;
+  --radius-2xl:  16px;  /* cards, panels */
+  --radius-3xl:  20px;
+  --radius-pill: 999px;
+
+  /* ── Shadows (légères, teintées lavande) ── */
+  --shadow-sm:   0 1px 3px rgba(0,0,0,.05);
+  --shadow-card: 0 2px 4px -1px rgba(130, 120, 180, 0.18);
+  --shadow-lift: 0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
+  --shadow-dropdown: 0 8px 32px rgba(0,0,0,.10);
 }
 
+/* ── Dark mode (override des tokens) ── */
+.dark {
+  --color-page:          #28283f;
+  --color-surface:       #28283f;
+  --color-content:       #1d1d31;
+  --color-icon-bg:       #1d1d31;
+  --color-menu-bg:       #28283f;
+  --color-topbar-bg:     #28283f;
+
+  --color-text:          #f8fafc;
+  --color-soft:          #9FA0CC;
+  --color-muted:         #8b8ba9;
+  --color-muted-light:   #28283f;
+  --color-icon-color:    #68688a;
+
+  --color-border:        #38385a;
+  --color-border-dark:   #38385a;
+  --color-border-light:  rgba(56, 56, 90, 0.5);
+
+  --color-accent:        #818CF8;
+  --color-accent-light:  rgba(129, 140, 248, 0.12);
+
+  --color-success:       #34D399;
+  --color-success-light: rgba(52, 211, 153, 0.1);
+  --color-warning:       #FB923C;
+  --color-warning-light: rgba(251, 146, 60, 0.1);
+  --color-info:          #38BDF8;
+  --color-info-light:    rgba(56, 189, 248, 0.1);
+  --color-danger:        #F87171;
+  --color-danger-light:  rgba(248, 113, 113, 0.1);
+  --color-pink:          #F472B6;
+  --color-pink-light:    rgba(244, 114, 182, 0.1);
+  --color-purple:        #A78BFA;
+  --color-purple-light:  rgba(167, 139, 250, 0.1);
+  --color-teal:          #2DD4BF;
+  --color-teal-light:    rgba(45, 212, 191, 0.1);
+  --color-yellow:        #FBBF24;
+  --color-yellow-light:  rgba(251, 191, 36, 0.1);
+  --color-dark:          #b5bbf5;
+  --color-dark-light:    rgba(181, 187, 245, 0.15);
+
+  --shadow-sm:   0 1px 3px rgba(0,0,0,.2);
+  --shadow-card: 0 2px 4px -1px rgba(0,0,0,0.25);
+  --shadow-lift: 0 10px 40px rgba(0,0,0,0.25);
+}
+
+/* ══════════════════════════════════════════════════════
+   Exposition des tokens à Tailwind v4 (utilitaires auto)
+   bg-accent, text-muted, border-border, rounded-card, etc.
+   ══════════════════════════════════════════════════════ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Couleurs */
+  --color-page:          var(--color-page);
+  --color-surface:       var(--color-surface);
+  --color-content:       var(--color-content);
+  --color-text:          var(--color-text);
+  --color-soft:          var(--color-soft);
+  --color-muted:         var(--color-muted);
+  --color-muted-light:   var(--color-muted-light);
+  --color-border:        var(--color-border);
+  --color-border-light:  var(--color-border-light);
+
+  --color-accent:        var(--color-accent);
+  --color-accent-light:  var(--color-accent-light);
+  --color-primary:       var(--color-primary);
+  --color-primary-light: var(--color-primary-light);
+
+  --color-success:       var(--color-success);
+  --color-success-light: var(--color-success-light);
+  --color-warning:       var(--color-warning);
+  --color-warning-light: var(--color-warning-light);
+  --color-info:          var(--color-info);
+  --color-info-light:    var(--color-info-light);
+  --color-danger:        var(--color-danger);
+  --color-danger-light:  var(--color-danger-light);
+  --color-pink:          var(--color-pink);
+  --color-pink-light:    var(--color-pink-light);
+  --color-yellow:        var(--color-yellow);
+  --color-yellow-light:  var(--color-yellow-light);
+  --color-purple:        var(--color-purple);
+  --color-purple-light:  var(--color-purple-light);
+  --color-teal:          var(--color-teal);
+  --color-teal-light:    var(--color-teal-light);
+  --color-dark:          var(--color-dark);
+  --color-dark-light:    var(--color-dark-light);
+  --color-ghost:         var(--color-ghost);
+  --color-ghost-light:   var(--color-ghost-light);
+
+  /* Typo */
+  --font-sans: 'Poppins', system-ui, sans-serif;
+  --font-mono: 'Roboto', monospace;
+
+  /* Radius */
+  --radius-sm:  var(--radius-sm);
+  --radius-md:  var(--radius-md);
+  --radius-lg:  var(--radius-lg);
+  --radius-xl:  var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+  --radius-3xl: var(--radius-3xl);
+
+  /* Shadows */
+  --shadow-card:     var(--shadow-card);
+  --shadow-lift:     var(--shadow-lift);
+  --shadow-dropdown: var(--shadow-dropdown);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ══════════════════════════════════════════════════════
+   Reset minimal & base
+   ══════════════════════════════════════════════════════ */
+html, body {
+  height: 100%;
+  font-family: 'Poppins', system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-page);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
+h1, h2, h3, h4, h5, h6 { font-weight: 600; }
