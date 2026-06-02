@@ -1,13 +1,13 @@
 import Image, { type StaticImageData } from "next/image";
 import Link from "next/link";
 import ButtonLink from "@/components/ui/ButtonLink";
-import freelanceImg from "./images/metier-freelance.png";
-import fleuristeImg from "./images/metier-fleuriste.png";
-import garagisteImg from "./images/metier-garagiste.png";
-import artisanImg from "./images/metier-artisan.png";
+import freelanceImg from "./images/job-freelance.png";
+import fleuristeImg from "./images/job-fleuriste.png";
+import garagisteImg from "./images/job-garagiste.png";
+import artisanImg from "./images/job-artisan.png";
 
 /** Une déclinaison métier proposée au catalogue. */
-type Metier = {
+type Job = {
   /** Identifiant transmis au tunnel d'inscription (cf. SPEC `?job=`). */
   slug: string;
   title: string;
@@ -17,10 +17,10 @@ type Metier = {
 
 /**
  * Les 4 profils types (cf. SPEC §1.3). Sur la page d'accueil, il s'agit d'un
- * aperçu : le clic mène au catalogue `/metiers` en pré-sélectionnant le métier
+ * aperçu : le clic mène au catalogue `/job` en pré-sélectionnant le métier
  * via le paramètre `?job=`.
  */
-const METIERS: Metier[] = [
+const JOBS: Job[] = [
   {
     slug: "freelance",
     title: "Freelance",
@@ -56,17 +56,17 @@ const METIERS: Metier[] = [
  * une répétition gênante pour les lecteurs d'écran tout en restant sans erreur
  * pour un audit WAVE.
  */
-export default function Metiers() {
+export default function Jobs() {
   return (
     <section
-      id="metiers"
-      aria-labelledby="metiers-titre"
+      id="job"
+      aria-labelledby="job-titre"
       className="scroll-mt-24 bg-surface px-6 py-24 sm:px-10 md:px-16"
     >
       <div className="mx-auto max-w-7xl">
         <div className="mx-auto mb-16 max-w-2xl text-center">
           <h2
-            id="metiers-titre"
+            id="job-titre"
             className="mb-4 text-[28px] font-bold text-text sm:text-[32px]"
           >
             Des solutions adaptées à votre métier
@@ -78,15 +78,15 @@ export default function Metiers() {
         </div>
 
         <ul className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {METIERS.map((metier) => (
-            <li key={metier.slug}>
+          {JOBS.map((job) => (
+            <li key={job.slug}>
               <Link
-                href={`/metiers?job=${metier.slug}`}
+                href={`/job?job=${job.slug}`}
                 className="group flex h-full flex-col rounded-2xl border border-border-light bg-content p-5 shadow-card transition-all duration-300 hover:shadow-lift"
               >
                 <div className="relative mb-4 aspect-video w-full overflow-hidden rounded-xl">
                   <Image
-                    src={metier.image}
+                    src={job.image}
                     alt=""
                     placeholder="blur"
                     sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
@@ -95,16 +95,16 @@ export default function Metiers() {
                   />
                 </div>
                 <h3 className="mb-2 text-[14.5px] font-semibold text-text transition-colors group-hover:text-accent-dark">
-                  {metier.title}
+                  {job.title}
                 </h3>
-                <p className="text-[13px] text-soft">{metier.description}</p>
+                <p className="text-[13px] text-soft">{job.description}</p>
               </Link>
             </li>
           ))}
         </ul>
 
         <div className="mt-12 flex justify-center">
-          <ButtonLink href="/metiers" size="lg" withArrow>
+          <ButtonLink href="/job" size="lg" withArrow>
             Voir les métiers
           </ButtonLink>
         </div>

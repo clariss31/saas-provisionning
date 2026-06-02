@@ -3,7 +3,7 @@ import Hero from "@/components/home/Hero";
 import SocialProof from "@/components/home/SocialProof";
 import Features from "@/components/home/Features";
 import Advantages from "@/components/home/Advantages";
-import Metiers from "@/components/home/Metiers";
+import Jobs from "@/components/home/Jobs";
 import Pricing from "@/components/home/Pricing";
 import FinalCta from "@/components/home/FinalCta";
 
@@ -34,7 +34,7 @@ export default function HomePage() {
       <SocialProof />
       <Features />
       <Advantages />
-      <Metiers />
+      <Jobs />
       <Pricing />
       <FinalCta />
     </>

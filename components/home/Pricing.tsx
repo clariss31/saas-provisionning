@@ -32,7 +32,7 @@ const PLANS: Plan[] = [
     tagline: "Pour les indépendants qui débutent.",
     monthlyPrice: 10,
     cta: "Commencer",
-    href: "/metiers",
+    href: "/job",
     features: [
       { label: "1 utilisateur inclus", included: true },
       { label: "Facturation standard", included: true },
@@ -45,7 +45,7 @@ const PLANS: Plan[] = [
     tagline: "L'équilibre parfait pour la croissance.",
     monthlyPrice: 50,
     cta: "Choisir Pro",
-    href: "/metiers",
+    href: "/job",
     highlighted: true,
     features: [
       { label: "Jusqu'à 5 utilisateurs", included: true },
