@@ -22,7 +22,7 @@ export default function FinalCta() {
               Rejoignez les professionnels qui gagnent du temps chaque jour.
               Configuration instantanée, sans engagement.
             </p>
-            <ButtonLink href="/metiers" variant="white" size="lg">
+            <ButtonLink href="/job" variant="white" size="lg">
               Obtenir un essai gratuit de 30 jours
             </ButtonLink>
           </div>
