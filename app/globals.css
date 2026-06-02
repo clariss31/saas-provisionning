@@ -29,6 +29,10 @@
   /* ── Accent (primary) ── */
   --color-accent:        #6C63F0;
   --color-accent-light:  #EDE9FE;
+  /* Teinte foncée (Kaleïdo « surface-tint ») réservée aux aplats portant du
+     texte blanc : garantit un contraste ≥ 4.5:1 (WCAG AA), là où #6C63F0
+     plafonne à ~4.49:1 sur blanc. */
+  --color-accent-dark:   #5348d5;
   --color-primary:       var(--color-accent);
   --color-primary-light: var(--color-accent-light);
 
@@ -140,6 +144,7 @@
 
   --color-accent:        var(--color-accent);
   --color-accent-light:  var(--color-accent-light);
+  --color-accent-dark:   var(--color-accent-dark);
   --color-primary:       var(--color-primary);
   --color-primary-light: var(--color-primary-light);
 
@@ -194,3 +199,47 @@ html, body {
 }
 
 h1, h2, h3, h4, h5, h6 { font-weight: 600; }
+
+/* Focus visible homogène et bien contrasté sur tous les éléments
+   interactifs au clavier (WCAG 2.4.7). */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-accent-dark);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ══════════════════════════════════════════════════════
+   Fonds dégradés de la page d'accueil
+   (définis ici pour garder un markup lisible côté composants)
+   ══════════════════════════════════════════════════════ */
+
+/* Hero : halo lavande diffus en haut à droite, fondu vers le blanc. */
+.hero-surface {
+  background: radial-gradient(
+    circle at top right,
+    rgba(235, 230, 247, 0.8) 0%,
+    var(--color-surface) 60%
+  );
+}
+
+/* Bloc CTA final : dégradé de marque violet → rose.
+   Un voile sombre (cf. composant) rétablit un contraste AA du texte blanc. */
+.cta-surface {
+  background: linear-gradient(
+    135deg,
+    var(--color-purple) 0%,
+    var(--color-pink) 100%
+  );
+}
+
+/* Respect de la préférence « animations réduites » (accessibilité). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

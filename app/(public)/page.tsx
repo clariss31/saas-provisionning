@@ -1,19 +1,42 @@
+import type { Metadata } from "next";
+import Hero from "@/components/home/Hero";
+import SocialProof from "@/components/home/SocialProof";
+import Features from "@/components/home/Features";
+import Advantages from "@/components/home/Advantages";
+import Metiers from "@/components/home/Metiers";
+import Pricing from "@/components/home/Pricing";
+import FinalCta from "@/components/home/FinalCta";
+
 /**
- * Page d'accueil (vitrine). Contenu provisoire : seuls le header et le
- * footer sont intégrés pour l'instant — la landing page complète viendra
- * dans un second temps.
+ * Métadonnées propres à la page d'accueil (SEO). Définies au niveau de la page
+ * (Server Component) : elles sont injectées dans le HTML pré-rendu.
+ */
+export const metadata: Metadata = {
+  title: "Provi — La puissance d'un ERP Open-Source, en toute simplicité",
+  description:
+    "Souscrivez à une instance ERP clé en main, hébergée en France et pré-configurée pour votre métier : freelance, fleuriste, garagiste ou artisan.",
+};
+
+/**
+ * Page d'accueil (vitrine).
+ *
+ * Server Component : la totalité du contenu est pré-rendue côté serveur
+ * (SSR/SSG) pour un score Lighthouse optimal (US 2.1). Seule la section des
+ * tarifs embarque du JavaScript, pour la bascule mensuel / annuel.
+ *
+ * L'enchaînement des sections suit la maquette : accroche → preuve sociale →
+ * fonctionnalités → atouts → métiers → tarifs → appel à l'action final.
  */
 export default function HomePage() {
   return (
-    <section className="mx-auto flex max-w-[1440px] flex-col items-center justify-center gap-3 px-16 py-32 text-center">
-      <h1 className="text-3xl font-bold tracking-tight">
-        La puissance de Dolibarr,{" "}
-        <span className="text-accent">en toute simplicité.</span>
-      </h1>
-      <p className="max-w-md text-soft">
-        Contenu de la page d&apos;accueil à venir. Le header et le footer
-        sont en place.
-      </p>
-    </section>
+    <>
+      <Hero />
+      <SocialProof />
+      <Features />
+      <Advantages />
+      <Metiers />
+      <Pricing />
+      <FinalCta />
+    </>
   );
 }

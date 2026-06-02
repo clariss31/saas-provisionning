@@ -27,11 +27,11 @@ export default function SiteHeader() {
 
   return (
     <header
-      className={`sticky top-0 z-40 h-20 w-full border-b border-border-light backdrop-blur-md transition-all duration-300 ${
+      className={`sticky top-0 z-40 w-full border-b border-border-light py-7 backdrop-blur-md transition-all duration-300 ${
         scrolled ? "bg-surface/95 shadow-sm" : "bg-surface/80"
       }`}
     >
-      <div className="mx-auto flex h-full w-full max-w-[1440px] items-center justify-between px-16">
+      <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between px-16">
         {/* Marque */}
         <Logo />
 
