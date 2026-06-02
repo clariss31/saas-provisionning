@@ -17,6 +17,9 @@
 /.next/
 /out/
 
+# swc (cache de compilation, régénéré automatiquement)
+/.swc/
+
 # production
 /build
 
