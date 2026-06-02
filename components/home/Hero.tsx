@@ -62,7 +62,7 @@ export default function Hero() {
           </p>
 
           <div className="flex flex-wrap items-center gap-4 pt-2">
-            <ButtonLink href="/metiers" withArrow>
+            <ButtonLink href="/job" withArrow>
               Choisir mon métier
             </ButtonLink>
             <ButtonLink href="#tarifs" variant="soft">

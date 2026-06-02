@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Logo from "./Logo";
 
 const NAV_LINKS = [
   { label: "Fonctionnalités", href: "/fonctionnalites" },
-  { label: "Métiers", href: "/metiers" },
+  { label: "Métiers", href: "/job" },
   { label: "Tarifs", href: "/tarifs" },
   { label: "Contact", href: "/contact" },
 ];
@@ -17,6 +18,7 @@ const NAV_LINKS = [
  */
 export default function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -35,17 +37,27 @@ export default function SiteHeader() {
         {/* Marque */}
         <Logo />
 
-        {/* Navigation (desktop) */}
+        {/* Navigation (desktop). Le lien de la page courante est mis en
+            évidence (couleur accent + soulignement) et signalé aux lecteurs
+            d'écran via aria-current. */}
         <nav className="hidden items-center gap-8 md:flex">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="text-[13px] font-medium text-soft transition-colors hover:text-accent"
-            >
-              {link.label}
-            </Link>
-          ))}
+          {NAV_LINKS.map((link) => {
+            const isActive = pathname === link.href;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={isActive ? "page" : undefined}
+                className={`text-[13px] transition-colors hover:text-accent ${
+                  isActive
+                    ? "border-b-2 border-accent py-2 font-semibold text-accent-dark"
+                    : "font-medium text-soft"
+                }`}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Actions */}
@@ -57,7 +69,7 @@ export default function SiteHeader() {
             Se connecter
           </Link>
           <Link
-            href="/metiers"
+            href="/job"
             className="inline-flex h-[38px] items-center justify-center rounded-lg bg-accent px-5 text-[12.5px] font-medium text-white shadow-card transition-all hover:-translate-y-px hover:shadow-lift"
           >
             Démarrer
