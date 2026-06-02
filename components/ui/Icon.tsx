@@ -146,6 +146,8 @@ const ICONS: Record<string, ReactNode> = {
       <path d="m9 11 3 3L22 4" />
     </>
   ),
+  // Chevron vers le bas → en-tête d'accordéon FAQ (pivote à l'ouverture).
+  "chevron-down": <path d="m6 9 6 6 6-6" />,
   // Croix → fonctionnalité non incluse (grille tarifaire).
   x: (
     <>

@@ -72,8 +72,25 @@ const PLANS: Plan[] = [
 /** Taux de remise appliqué sur l'engagement annuel. */
 const YEARLY_DISCOUNT = 0.2;
 
+/** Props du bloc tarifs (toutes optionnelles : valeurs par défaut = accueil). */
+type PricingProps = {
+  /** Titre de la section. */
+  title?: string;
+  /** Sous-titre sous le titre. */
+  subtitle?: string;
+  /**
+   * Niveau du titre : `h2` quand le bloc est une section parmi d'autres
+   * (accueil), `h1` quand il est le titre principal de la page dédiée
+   * (/tarifs). Préserve une hiérarchie de titres correcte (WCAG 2.4.6).
+   */
+  headingLevel?: "h1" | "h2";
+};
+
 /**
  * Section « Tarifs » avec bascule Mensuel / Annuel.
+ *
+ * Bloc réutilisé tel quel par la page d'accueil et la page dédiée /tarifs ;
+ * seuls le libellé et le niveau du titre s'adaptent via les props.
  *
  * Client Component : l'état `yearly` recalcule les prix à la volée, sans
  * rechargement (US 4.2). Le sélecteur est :
@@ -81,8 +98,14 @@ const YEARLY_DISCOUNT = 0.2;
  *  - annoncé aux lecteurs d'écran via `aria-pressed` et une zone `role="status"`
  *    qui verbalise la périodicité active.
  */
-export default function Pricing() {
+export default function Pricing({
+  title = "Une tarification simple et transparente",
+  subtitle = "Choisissez le plan qui correspond à la taille de votre entreprise.",
+  headingLevel = "h2",
+}: PricingProps = {}) {
   const [yearly, setYearly] = useState(false);
+  // Balise de titre dynamique (h1 ou h2 selon le contexte d'utilisation).
+  const Heading = headingLevel;
 
   /**
    * Calcule le prix mensuel affiché pour une offre selon la périodicité.
@@ -99,15 +122,17 @@ export default function Pricing() {
     >
       <div className="mx-auto max-w-7xl text-center">
         <div className="mx-auto mb-8 max-w-2xl">
-          <h2
+          <Heading
             id="tarifs-titre"
-            className="mb-4 text-[28px] font-bold text-text sm:text-[32px]"
+            className={`mb-4 font-bold text-text ${
+              headingLevel === "h1"
+                ? "text-[32px] sm:text-[44px]"
+                : "text-[28px] sm:text-[32px]"
+            }`}
           >
-            Une tarification simple et transparente
-          </h2>
-          <p className="text-[15px] text-soft">
-            Choisissez le plan qui correspond à la taille de votre entreprise.
-          </p>
+            {title}
+          </Heading>
+          <p className="text-[15px] text-soft">{subtitle}</p>
         </div>
 
         {/* Sélecteur de périodicité */}
