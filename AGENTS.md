@@ -18,3 +18,40 @@ Before any feature work, read:
 Validate that any new feature fits the documented perimeter. If a request expands or contradicts the spec, flag it before implementing rather than silently extending the scope. When a user story is implemented, the code should satisfy its acceptance criteria — those are the contract.
 
 Mandatory unit tests (Jest + React Testing Library): the Tarifs toggle (US 4.2) and the subdomain availability check (US 5.2).
+
+# Qualité, performance et accessibilité
+
+Ces règles s'appliquent à tout code produit dans ce projet.
+
+## Documentation et lisibilité du code
+
+- Documenter les principales fonctions / composants en suivant les guidelines
+  **JSDoc** (et/ou **Storybook** pour les composants UI). Les commentaires sont
+  rédigés **en français**.
+- Le code doit rester **compréhensible** en toute circonstance : nommage
+  explicite, fonctions courtes, pas d'abréviations obscures.
+- Dès qu'un passage comporte de la **logique complexe**, il est accompagné d'au
+  moins un commentaire qui en éclaire le fonctionnement (le « pourquoi », pas
+  seulement le « quoi »).
+
+## Performance
+
+- **Optimiser la performance** par défaut (images via `next/image`, peu de
+  JavaScript côté client, pas de dépendances superflues).
+- L'application obtient **au moins 90** sur Lighthouse, avec les rubriques
+  suivantes **au vert** :
+  - **Performances**
+  - **Accessibilité**
+- Utiliser le **rendu côté serveur (SSR/SSG)** pour les pages qui s'y prêtent
+  (notamment les pages vitrines) afin de gagner en performance. Réserver
+  `"use client"` aux seuls composants réellement interactifs.
+
+## Accessibilité
+
+- L'application **ne présente aucune erreur lors d'un audit WAVE** :
+  - aucune erreur dans le résumé (« Errors ») ;
+  - aucune erreur de **contraste**.
+- L'application est accessible au **minimum WCAG niveau AA** (WCAG 2 AA) :
+  structure sémantique et hiérarchie de titres correctes, alternatives
+  textuelles, navigation au clavier, focus visible, attributs ARIA pertinents
+  (sélecteur de prix, formulaires…), contrastes validés.

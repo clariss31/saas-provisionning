@@ -73,15 +73,10 @@ pour activer uniquement les modules Dolibarr nécessaires.
 
 ### 1.4. Grille tarifaire unifiée
 
-Prix unique par métier, décliné sous 3 engagements :
-
-| Engagement | Prix affiché | Facturation | Cible / argument |
-|---|---|---|---|
-| **Mensuel** (sans engagement) | 19 € / mois | Mensuelle | Flexibilité totale, idéal pour tester. |
-| **Annuel** (engagement 12 mois) | 15 € / mois | 180 € en une fois | Maximise la rétention client et la trésorerie. |
-| **À vie** (lifetime deal) | 499 € | Versement unique | Offre marketing de lancement pour acquérir des utilisateurs clés. |
-
----
+Mensuel/Annuel
+Starter : 10 € / mois
+Professionnel : 50 € / mois
+Premium : 100 € / mois
 
 ## 2. Architecture de l'application & parcours utilisateur
 
