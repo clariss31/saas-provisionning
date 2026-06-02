@@ -1,0 +1,511 @@
+<!DOCTYPE html><html class="light" lang="fr" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Provi - Tarifs</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-dim": "#dcd8e4",
+                    "pink": "#ec4899",
+                    "success": "#1d9e75",
+                    "on-secondary-fixed-variant": "#464555",
+                    "on-primary-fixed-variant": "#3a2abd",
+                    "on-error-container": "#93000a",
+                    "muted": "#9CA3AF",
+                    "surface-tint": "#5348d6",
+                    "tertiary-fixed": "#e5e1e9",
+                    "primary-container": "#6c63f0",
+                    "secondary-fixed": "#e4e0f5",
+                    "background": "#fcf8ff",
+                    "secondary-container": "#e4e0f5",
+                    "pink-light": "#fdf2f7",
+                    "inverse-on-surface": "#f3effb",
+                    "outline": "#777586",
+                    "content": "#f8f4fb",
+                    "on-primary-container": "#030026",
+                    "secondary": "#5e5c6e",
+                    "border": "#ede8f5",
+                    "on-secondary-fixed": "#1b1a29",
+                    "error": "#ba1a1a",
+                    "yellow": "#ef9f27",
+                    "tertiary-container": "#76737a",
+                    "on-background": "#1b1b23",
+                    "purple": "#8b5cf6",
+                    "primary-fixed-dim": "#c4c0ff",
+                    "yellow-light": "#fef9ec",
+                    "text": "#1b1b23",
+                    "surface-container-highest": "#e4e1ed",
+                    "purple-light": "#f5f3ff",
+                    "danger": "#dc2626",
+                    "dark": "#3e3d54",
+                    "surface-container-low": "#f6f2fe",
+                    "on-tertiary-fixed": "#1c1b20",
+                    "on-secondary-container": "#646274",
+                    "on-surface": "#1b1b23",
+                    "surface-variant": "#e4e1ed",
+                    "info-light": "#e8f2fd",
+                    "inverse-surface": "#302f38",
+                    "dark-light": "#f4f4f7",
+                    "surface-container-lowest": "#ffffff",
+                    "teal-light": "#f0fdfa",
+                    "tertiary-fixed-dim": "#c9c5cd",
+                    "primary": "#5348d5",
+                    "tertiary": "#5d5b61",
+                    "on-surface-variant": "#474554",
+                    "on-error": "#ffffff",
+                    "on-primary": "#ffffff",
+                    "outline-variant": "#c8c4d7",
+                    "teal": "#14b8a6",
+                    "on-tertiary-container": "#fffbff",
+                    "on-secondary": "#ffffff",
+                    "border-light": "#f5f2f9",
+                    "surface-bright": "#fcf8ff",
+                    "danger-light": "#fff1f2",
+                    "error-container": "#ffdad6",
+                    "success-light": "#e6f7f2",
+                    "page": "#fcf8ff",
+                    "primary-fixed": "#e3dfff",
+                    "surface-container": "#f0ecf8",
+                    "surface-container-high": "#eae6f3",
+                    "warning-light": "#fdf2e9",
+                    "on-primary-fixed": "#120068",
+                    "secondary-fixed-dim": "#c7c4d8",
+                    "soft": "#6B7280",
+                    "on-tertiary": "#ffffff",
+                    "warning": "#eb7413",
+                    "info": "#378add",
+                    "inverse-primary": "#c4c0ff",
+                    "on-tertiary-fixed-variant": "#48464c",
+                    "surface": "#fcf8ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "2xl": "1rem",
+                    "3xl": "1.25rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "topbar-height": "80px",
+                    "content-gap": "16px",
+                    "sidebar-width": "260px",
+                    "content-py": "28px",
+                    "content-px": "64px",
+                    "rail-width": "80px"
+            },
+            "fontFamily": {
+                    "poppins": [
+                            "Be Vietnam Pro"
+                    ],
+                    "headline": [
+                            "Be Vietnam Pro"
+                    ],
+                    "display": [
+                            "Be Vietnam Pro"
+                    ],
+                    "body": [
+                            "Be Vietnam Pro"
+                    ],
+                    "label": [
+                            "Be Vietnam Pro"
+                    ],
+                    "page-title": [
+                            "Be Vietnam Pro"
+                    ],
+                    "card-title": [
+                            "Be Vietnam Pro"
+                    ],
+                    "compact-ui": [
+                            "Be Vietnam Pro"
+                    ],
+                    "section-title": [
+                            "Be Vietnam Pro"
+                    ],
+                    "caption": [
+                            "Be Vietnam Pro"
+                    ]
+            },
+            "fontSize": {
+                    "label": [
+                            "12.5px",
+                            {
+                                    "lineHeight": "18px",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "compact-ui": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "page-title": [
+                            "20px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "card-title": [
+                            "14.5px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body": [
+                            "13px",
+                            {
+                                    "lineHeight": "20px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "caption": [
+                            "11.5px",
+                            {
+                                    "lineHeight": "16px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "section-title": [
+                            "11px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "0.6px",
+                                    "fontWeight": "700"
+                            }
+                    ]
+            },
+            boxShadow: {
+              'card': '0 4px 12px -2px rgba(83, 72, 213, 0.08), 0 2px 4px -2px rgba(83, 72, 213, 0.04)',
+              'lift': '0 10px 24px -4px rgba(83, 72, 213, 0.12), 0 4px 10px -4px rgba(83, 72, 213, 0.06)',
+              'dropdown': '0 20px 25px -5px rgba(83, 72, 213, 0.15), 0 10px 10px -5px rgba(83, 72, 213, 0.04)',
+              'accent-glow': '0 0 40px -10px rgba(83, 72, 213, 0.3)',
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { background-color: #fcf8ff; }
+        .faq-content {
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+        .faq-item.active .faq-content {
+            max-height: 200px;
+            opacity: 1;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+        .faq-icon {
+            transition: transform 0.3s ease;
+        }
+        .faq-item.active .faq-icon {
+            transform: rotate(180deg);
+        }
+        
+        .billing-toggle-container {
+            display: inline-flex;
+            background: #f0ecf8;
+            padding: 4px;
+            border-radius: 9999px;
+            position: relative;
+        }
+        .billing-toggle-btn {
+            position: relative;
+            z-index: 10;
+            padding: 8px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #474554;
+            transition: color 0.3s ease;
+        }
+        .billing-toggle-btn.active {
+            color: #ffffff;
+        }
+        .billing-slider {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            height: calc(100% - 8px);
+            width: calc(50% - 4px);
+            background: #6C63F0;
+            border-radius: 9999px;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 5;
+        }
+        .billing-toggle-container.yearly .billing-slider {
+            transform: translateX(100%);
+        }
+    </style>
+</head>
+<body class="text-on-surface font-body antialiased min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="h-topbar-height w-full sticky top-0 z-40 bg-white/80 backdrop-blur-md shadow-sm border-b border-border-light transition-all duration-300" id="main-header">
+<div class="flex items-center justify-between px-content-px w-full max-w-[1440px] mx-auto h-full">
+<!-- Brand -->
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[28px] shrink-0" style="font-variation-settings: &quot;FILL&quot; 1;">widgets</span>
+<span class="font-page-title text-page-title font-bold text-primary tracking-tight">Provi</span>
+</div>
+<!-- Navigation (Desktop) -->
+<nav class="hidden md:flex items-center gap-8">
+<a class="font-compact-ui text-compact-ui text-secondary hover:text-primary transition-colors font-medium" href="#">Fonctionnalités</a>
+<a class="font-compact-ui text-compact-ui text-secondary hover:text-primary transition-colors font-medium" href="#">Métiers</a>
+<a class="font-compact-ui text-compact-ui text-secondary hover:text-primary transition-colors font-medium" href="#">Tarifs</a>
+<a class="font-compact-ui text-compact-ui text-secondary hover:text-primary transition-colors font-medium" href="#">Contact</a>
+</nav>
+<!-- Actions -->
+<div class="flex items-center gap-4">
+<a class="hidden md:inline-flex font-label text-label text-secondary hover:text-primary transition-colors px-3 py-2 rounded-lg hover:bg-surface-container-low" href="#">Se connecter</a>
+<a class="inline-flex items-center justify-center h-[38px] px-5 rounded-lg bg-primary text-white font-label text-label hover:bg-surface-tint transition-all shadow-card hover:shadow-lift hover:-translate-y-[1px]" href="#">Démarrer</a>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-grow flex flex-col items-center py-16 px-4 md:px-content-px w-full max-w-[1440px] mx-auto">
+<!-- Header Section -->
+<div class="text-center max-w-2xl mx-auto mb-8">
+<h1 class="text-4xl md:text-5xl font-poppins text-on-surface font-bold mb-4 tracking-tight">Une tarification transparente, adaptée à votre métier.</h1>
+<p class="text-lg text-secondary font-poppins">Choisissez la formule qui correspond le mieux à l'évolution de votre activité. Simple, transparent et sans surprise.</p>
+</div>
+<!-- Billing Toggle (Updated to Pill Style) -->
+<div class="flex items-center justify-center gap-4 mb-16">
+<div class="billing-toggle-container" id="billing-toggle-container">
+<div class="billing-slider"></div>
+<button class="billing-toggle-btn active" id="btn-monthly" onclick="updateBilling(false)">Mensuel</button>
+<button class="billing-toggle-btn" id="btn-yearly" onclick="updateBilling(true)">Annuel</button>
+</div>
+<span class="text-[11px] font-bold text-pink bg-pink-light px-2 py-0.5 rounded-full uppercase tracking-tighter">-20%</span>
+</div>
+<!-- Pricing Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8 w-full mb-24 max-w-6xl mx-auto relative z-10 items-stretch">
+<!-- Starter Card -->
+<div class="bg-white rounded-2xl p-8 shadow-card flex flex-col h-full text-left border border-border-light hover:shadow-lift transition-all">
+<div class="mb-6">
+<h3 class="font-section-title text-[11px] uppercase tracking-wider text-muted mb-2">Starter</h3>
+<p class="text-secondary font-caption text-caption mb-4">Pour les indépendants qui débutent.</p>
+<div class="mb-8 flex items-baseline">
+<span class="text-[48px] font-bold text-primary tracking-tight" id="price-starter">10€</span>
+<span class="text-secondary ml-1">/mois</span>
+</div>
+</div>
+<button class="w-full h-[38px] rounded-lg border border-outline-variant text-on-surface font-label text-label hover:bg-surface-container-low transition-colors mb-8">
+                    Commencer
+                </button>
+<ul class="space-y-4 flex-grow font-body text-secondary">
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: &quot;FILL&quot; 1;">check_circle</span>
+                        1 utilisateur inclus
+                    </li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: &quot;FILL&quot; 1;">check_circle</span>
+                        Facturation standard
+                    </li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: &quot;FILL&quot; 1;">check_circle</span>
+                        Hébergement sécurisé
+                    </li>
+<li class="flex items-start gap-3 opacity-50">
+<span class="material-symbols-outlined text-muted text-[18px]">cancel</span>
+                        Multi-devises
+                    </li>
+</ul>
+</div>
+<!-- Professionnel Card (HIGHLIGHTED) -->
+<div class="bg-white rounded-2xl p-8 shadow-lift flex flex-col h-full text-left relative border-2 border-primary transform md:scale-105 z-10 overflow-hidden"><div class="absolute top-0 right-0 w-32 h-32 pointer-events-none z-20">
+    <div class="absolute top-6 -right-8 w-[140px] bg-primary text-white text-[10px] font-bold py-1.5 text-center uppercase tracking-widest transform rotate-45 shadow-sm shadow-black/10">
+        Populaire
+    </div>
+</div>
+
+<div class="mb-6">
+<h3 class="font-section-title text-[11px] uppercase tracking-wider text-primary mb-2">Professionnel</h3>
+<p class="text-secondary font-caption text-caption mb-4">L'équilibre parfait pour la croissance.</p>
+<div class="mb-8 flex items-baseline">
+<span class="text-[48px] font-bold text-primary tracking-tight" id="price-pro">50€</span>
+<span class="text-secondary ml-1">/mois</span>
+</div>
+<div class="text-sm text-primary font-medium mb-4" id="billing-detail-pro">Sans engagement</div>
+</div>
+<button class="w-full h-[44px] rounded-lg bg-primary text-on-primary font-label text-label hover:bg-surface-tint transition-all shadow-md hover:shadow-lift mb-8">
+                        Choisir Pro
+                    </button>
+<ul class="space-y-4 flex-grow font-body text-on-surface">
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: &quot;FILL&quot; 1;">check_circle</span>
+                            Jusqu'à 5 utilisateurs
+                        </li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: &quot;FILL&quot; 1;">check_circle</span>
+                            Gestion de stock avancée
+                        </li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: &quot;FILL&quot; 1;">check_circle</span>
+                            Relances automatiques
+                        </li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: &quot;FILL&quot; 1;">check_circle</span>
+                            Support prioritaire
+                        </li>
+</ul>
+</div>
+<!-- Premium Card -->
+<div class="bg-white rounded-2xl p-8 shadow-card flex flex-col h-full text-left border border-border-light hover:shadow-lift transition-all">
+<div class="mb-6">
+<h3 class="font-section-title text-[11px] uppercase tracking-wider text-muted mb-2">Premium</h3>
+<p class="text-secondary font-caption text-caption mb-4">Pour les entreprises établies.</p>
+<div class="mb-8 flex items-baseline">
+<span class="text-[48px] font-bold text-primary tracking-tight" id="price-premium">100€</span>
+<span class="text-secondary ml-1">/mois</span>
+</div>
+</div>
+<button class="w-full h-[38px] rounded-lg bg-surface-container-highest text-on-surface font-label text-label hover:bg-surface-variant transition-colors mb-8">
+                    Contacter le service commercial</button>
+<ul class="space-y-4 flex-grow font-body text-secondary">
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: &quot;FILL&quot; 1;">check_circle</span>
+                        Utilisateurs illimités
+                    </li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: &quot;FILL&quot; 1;">check_circle</span>
+                        Tous les modules inclus
+                    </li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: &quot;FILL&quot; 1;">check_circle</span>
+                        Onboarding personnalisé
+                    </li>
+<li class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary text-[18px]" style="font-variation-settings: &quot;FILL&quot; 1;">check_circle</span>
+                        Account Manager dédié
+                    </li>
+</ul>
+</div>
+</div>
+<!-- FAQ Section -->
+<div class="w-full max-w-3xl mx-auto">
+<h2 class="text-2xl font-poppins text-on-surface font-bold mb-8 text-center">Questions fréquentes</h2>
+<div class="space-y-4">
+<!-- FAQ Item 1 (Open by default) -->
+<div class="bg-white border border-border-light rounded-2xl overflow-hidden shadow-card faq-item active">
+<button class="w-full px-6 py-4 flex items-center justify-between bg-white hover:bg-surface-container-low transition-colors text-left" onclick="this.parentElement.classList.toggle('active')">
+<span class="font-poppins font-semibold text-on-surface">Puis-je changer d'abonnement plus tard ?</span>
+<span class="material-symbols-outlined text-secondary faq-icon" data-icon="expand_more">expand_more</span>
+</button>
+<div class="faq-content px-6 bg-white">
+<p class="text-muted font-poppins text-body pb-2">Oui, tout à fait. Vous pouvez passer du plan Starter au plan Pro ou Premium à tout moment depuis les paramètres de votre compte. La différence sera calculée au prorata de votre utilisation actuelle.</p>
+</div>
+</div>
+<!-- FAQ Item 2 -->
+<div class="bg-white border border-border-light rounded-2xl overflow-hidden shadow-card faq-item">
+<button class="w-full px-6 py-4 flex items-center justify-between bg-white hover:bg-surface-container-low transition-colors text-left" onclick="this.parentElement.classList.toggle('active')">
+<span class="font-poppins font-semibold text-on-surface">Quels sont les moyens de paiement acceptés ?</span>
+<span class="material-symbols-outlined text-secondary faq-icon" data-icon="expand_more">expand_more</span>
+</button>
+<div class="faq-content px-6 bg-white">
+<p class="text-muted font-poppins text-body pb-2">Nous acceptons toutes les principales cartes bancaires (Visa, Mastercard, American Express) ainsi que les prélèvements SEPA pour les abonnements annuels. Les paiements sont sécurisés par Stripe.</p>
+</div>
+</div>
+<!-- FAQ Item 3 -->
+<div class="bg-white border border-border-light rounded-2xl overflow-hidden shadow-card faq-item">
+<button class="w-full px-6 py-4 flex items-center justify-between bg-white hover:bg-surface-container-low transition-colors text-left" onclick="this.parentElement.classList.toggle('active')">
+<span class="font-poppins font-semibold text-on-surface">Y a-t-il des frais cachés pour la facturation ?</span>
+<span class="material-symbols-outlined text-secondary faq-icon" data-icon="expand_more">expand_more</span>
+</button>
+<div class="faq-content px-6 bg-white">
+<p class="text-muted font-poppins text-body pb-2">Non, notre tarification est 100% transparente. Vous ne payez que le montant de l'abonnement affiché. L'envoi de factures et les relances automatisées sont inclus dans votre forfait sans coût supplémentaire.</p>
+</div>
+</div>
+<!-- FAQ Item 4 -->
+<div class="bg-white border border-border-light rounded-2xl overflow-hidden shadow-card faq-item">
+<button class="w-full px-6 py-4 flex items-center justify-between bg-white hover:bg-surface-container-low transition-colors text-left" onclick="this.parentElement.classList.toggle('active')">
+<span class="font-poppins font-semibold text-on-surface">Comment fonctionne l'engagement ?</span>
+<span class="material-symbols-outlined text-secondary faq-icon" data-icon="expand_more">expand_more</span>
+</button>
+<div class="faq-content px-6 bg-white">
+<p class="text-muted font-poppins text-body pb-2">Les abonnements mensuels sont sans engagement : vous pouvez annuler à tout moment pour le mois suivant. Les abonnements annuels vous engagent sur 12 mois en échange d'une réduction substantielle sur le tarif mensuel.</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="w-full py-12 px-content-px border-t border-border-light bg-surface mt-auto">
+<div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="flex flex-col items-start space-y-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[24px] icon-fill">widgets</span>
+<span class="text-lg font-bold text-primary">Provi</span>
+</div>
+<p class="text-sm text-soft max-w-xs leading-relaxed">
+                © 2026 Provi SAS. Fabriqué avec passion pour les artisans et indépendants.
+            </p>
+</div>
+<div class="flex flex-col space-y-3">
+<span class="text-sm font-bold text-on-surface mb-1 uppercase tracking-wider">Produit</span>
+<a class="text-sm text-soft hover:text-primary transition-colors" href="#">Tarifs</a>
+<a class="text-sm text-soft hover:text-primary transition-colors" href="#">Fonctionnalités</a>
+<a class="text-sm text-soft hover:text-primary transition-colors" href="#">Sécurité</a>
+</div>
+<div class="flex flex-col space-y-3">
+<span class="text-sm font-bold text-on-surface mb-1 uppercase tracking-wider">Légal &amp; Contact</span>
+<a class="text-sm text-soft hover:text-primary transition-colors" href="#">CGU</a>
+<a class="text-sm text-soft hover:text-primary transition-colors" href="#">Confidentialité</a>
+<a class="text-sm text-soft hover:text-primary transition-colors" href="#">Contact</a>
+</div>
+</div>
+</footer>
+<script>
+    const starterPrice = document.getElementById('price-starter');
+    const proPrice = document.getElementById('price-pro');
+    const premiumPrice = document.getElementById('price-premium');
+    const proDetail = document.getElementById('billing-detail-pro');
+    const toggleContainer = document.getElementById('billing-toggle-container');
+    const btnMonthly = document.getElementById('btn-monthly');
+    const btnYearly = document.getElementById('btn-yearly');
+
+    const prices = {
+        monthly: { starter: 10, pro: 50, premium: 100 },
+        yearly: { starter: 8, pro: 40, premium: 80 }
+    };
+
+    function updateBilling(isYearly) {
+        const mode = isYearly ? 'yearly' : 'monthly';
+        
+        starterPrice.innerText = prices[mode].starter + '€';
+        proPrice.innerText = prices[mode].pro + '€';
+        premiumPrice.innerText = prices[mode].premium + '€';
+        
+        if (isYearly) {
+            toggleContainer.classList.add('yearly');
+            btnYearly.classList.add('active');
+            btnMonthly.classList.remove('active');
+            proDetail.innerText = `Facturé ${prices[mode].pro * 12}€ par an`;
+        } else {
+            toggleContainer.classList.remove('yearly');
+            btnMonthly.classList.add('active');
+            btnYearly.classList.remove('active');
+            proDetail.innerText = 'Sans engagement';
+        }
+    }
+</script>
+
+
+
+
+
+
+
+
+</body></html>
