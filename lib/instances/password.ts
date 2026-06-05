@@ -50,3 +50,20 @@ export function scorePassword(password: string): PasswordStrength {
 
   return { score, label: LABELS[score], acceptable };
 }
+
+/**
+ * Empreinte SHA-256 (hexadécimale) d'un mot de passe, calculée côté client
+ * (Web Crypto) **avant transmission** : le mot de passe en clair ne quitte
+ * jamais le navigateur.
+ *
+ * NB : en provisioning réel (Lot 7), la pose du mot de passe admin sur
+ * l'instance sera gérée côté serveur par Sell Your SaaS ; ce hash sert à éviter
+ * tout transit en clair pendant la phase mock.
+ */
+export async function hashPassword(password: string): Promise<string> {
+  const data = new TextEncoder().encode(password);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
