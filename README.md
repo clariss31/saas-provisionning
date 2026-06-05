@@ -40,7 +40,32 @@ Autres scripts :
 npm run build   # build de production
 npm run start   # serveur de production
 npm run lint    # ESLint
+npm run test    # tests unitaires (Jest + RTL)
 ```
+
+---
+
+## Configuration (variables d'environnement)
+
+Copier [.env.example](.env.example) vers `.env.local` (ignoré par git) puis
+renseigner les valeurs. **Aucune n'est requise pour développer** : par défaut la
+couche de provisioning tourne en **mode simulé** (`DOLIBARR_MODE=mock`) et les
+e-mails sont journalisés en console.
+
+| Variable | Rôle | Requise quand |
+|---|---|---|
+| `DOLIBARR_MODE` | `mock` (simulation locale, défaut) ou `live` (API REST réelle). | — |
+| `DOLIBARR_API_URL` | URL de base de l'API REST du Maître (`…/api/index.php`). | mode `live` |
+| `DOLIBARR_API_KEY` | Jeton `DOLAPIKEY` d'un utilisateur habilité (fiche Utilisateur → onglet « Clé API »). | mode `live` |
+| `INSTANCE_DOMAIN` | Domaine racine des instances (`<sous-domaine>.<INSTANCE_DOMAIN>`). | mode `live` |
+| `MJ_APIKEY_PUBLIC` / `MJ_APIKEY_PRIVATE` | Clés API MailJet. Sans elles, les e-mails sont journalisés. | envoi d'e-mails réel |
+| `MAIL_FROM` | Adresse expéditrice (validée côté MailJet). | envoi d'e-mails réel |
+
+> **Architecture backend.** L'app ne stocke aucune donnée : le **Dolibarr Maître**
+> (`kaleido.pichinov.fr`) est la source de vérité. Chaque instance = un *contrat*
+> (objet Sell Your SaaS) dont le sous-domaine est un champ. Toute interaction passe
+> par la couche isolée [lib/dolibarr/](lib/dolibarr/) (`client.ts` + `instances.ts`),
+> seul endroit à modifier pour basculer de la simulation au serveur réel.
 
 ---
 
