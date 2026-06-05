@@ -22,6 +22,13 @@ const ICONS: Record<string, ReactNode> = {
       <path d="m12 5 7 7-7 7" />
     </>
   ),
+  // Flèche « en arrière » (bouton Retour des formulaires).
+  "arrow-left": (
+    <>
+      <path d="M19 12H5" />
+      <path d="m12 19-7-7 7-7" />
+    </>
+  ),
   // Nœuds reliés → CRM & Ventes.
   "share-2": (
     <>
@@ -139,6 +146,8 @@ const ICONS: Record<string, ReactNode> = {
       <line x1="6" x2="6" y1="20" y2="16" />
     </>
   ),
+  // Coche seule (cercles d'étape du tableau de bord de provisioning).
+  check: <path d="M20 6 9 17l-5-5" />,
   // Pastille validée → fonctionnalité incluse (grille tarifaire).
   "check-circle": (
     <>
