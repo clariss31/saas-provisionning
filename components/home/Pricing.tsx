@@ -31,7 +31,7 @@ const PLANS: Plan[] = [
     name: "Starter",
     tagline: "Pour les indépendants qui débutent.",
     monthlyPrice: 10,
-    cta: "Commencer",
+    cta: "Démarrer l'essai gratuit",
     href: "/job",
     features: [
       { label: "1 utilisateur inclus", included: true },
@@ -44,7 +44,7 @@ const PLANS: Plan[] = [
     name: "Professionnel",
     tagline: "L'équilibre parfait pour la croissance.",
     monthlyPrice: 50,
-    cta: "Choisir Pro",
+    cta: "Démarrer l'essai gratuit",
     href: "/job",
     highlighted: true,
     features: [
@@ -58,8 +58,8 @@ const PLANS: Plan[] = [
     name: "Premium",
     tagline: "Pour les entreprises établies.",
     monthlyPrice: 100,
-    cta: "Contacter le service commercial",
-    href: "/contact",
+    cta: "Démarrer l'essai gratuit",
+    href: "/job",
     features: [
       { label: "Utilisateurs illimités", included: true },
       { label: "Tous les modules inclus", included: true },
