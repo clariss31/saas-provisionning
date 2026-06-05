@@ -62,7 +62,7 @@ e-mails sont journalisés en console.
 | `MAIL_FROM` | Adresse expéditrice (validée côté MailJet). | envoi d'e-mails réel |
 
 > **Architecture backend.** L'app ne stocke aucune donnée : le **Dolibarr Maître**
-> (`kaleido.pichinov.fr`) est la source de vérité. Chaque instance = un *contrat*
+> est la source de vérité. Chaque instance = un *contrat*
 > (objet Sell Your SaaS) dont le sous-domaine est un champ. Toute interaction passe
 > par la couche isolée [lib/dolibarr/](lib/dolibarr/) (`client.ts` + `instances.ts`),
 > seul endroit à modifier pour basculer de la simulation au serveur réel.
