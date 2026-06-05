@@ -1,5 +1,5 @@
 /**
- * Client bas niveau pour l'API REST du Dolibarr Maître (kaleido.pichinov.fr).
+ * Client bas niveau pour l'API REST du Dolibarr Maître.
  *
  * ⚠️ Module **strictement serveur** : il porte le jeton `DOLAPIKEY` et ne doit
  * jamais être importé par un composant client. Il n'est consommé que par la
