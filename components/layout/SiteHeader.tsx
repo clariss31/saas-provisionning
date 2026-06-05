@@ -63,12 +63,6 @@ export default function SiteHeader() {
         {/* Actions */}
         <div className="flex items-center gap-4">
           <Link
-            href="/connexion"
-            className="hidden rounded-lg px-3 py-2 text-[12.5px] font-medium text-soft transition-colors hover:bg-content hover:text-accent md:inline-flex"
-          >
-            Se connecter
-          </Link>
-          <Link
             href="/job"
             className="inline-flex h-[38px] items-center justify-center rounded-lg bg-accent px-5 text-[12.5px] font-medium text-white shadow-card transition-all hover:-translate-y-px hover:shadow-lift"
           >
