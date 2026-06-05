@@ -8,6 +8,12 @@ type Props = {
   companyName: string;
   /** URL de l'espace une fois déployé (bouton « Accéder à mon espace »). */
   accessUrl: string;
+  /**
+   * Réf de l'instance. Quand le déploiement atteint « prêt », le dashboard
+   * notifie le serveur (`POST /api/provisioning/notify`) pour déclencher
+   * l'e-mail « Votre ERP est prêt ». Optionnelle (pas de notification sans réf).
+   */
+  instanceRef?: string | null;
 };
 
 /** Sous-étapes de déploiement affichées dans le stepper vertical (SPEC page 6). */
@@ -32,11 +38,17 @@ type StepStatus = "done" | "active" | "pending";
  * stepper vertical passent de « en cours » à « terminé », puis l'état bascule
  * sur le succès avec un bouton vers l'espace déployé.
  *
- * TODO(Lot 4/5) : remplacer la simulation par un vrai suivi — POST de création
- * d'instance puis polling de `GET /api/provisioning/[ref]` (statut réel issu du
- * Dolibarr Maître). L'URL d'accès deviendra alors celle de l'instance.
+ * À la fin du déploiement, le dashboard déclenche l'e-mail « Votre ERP est prêt »
+ * via `POST /api/provisioning/notify` (Lot 4).
+ *
+ * TODO(Lot 5) : remplacer la simulation client par un vrai polling de
+ * `GET /api/provisioning/[ref]` (statut réel issu du Dolibarr Maître).
  */
-export default function ProvisioningDashboard({ companyName, accessUrl }: Props) {
+export default function ProvisioningDashboard({
+  companyName,
+  accessUrl,
+  instanceRef,
+}: Props) {
   const [progress, setProgress] = useState(0);
   const done = progress >= 100;
 
@@ -53,6 +65,22 @@ export default function ProvisioningDashboard({ companyName, accessUrl }: Props)
     }, TICK_MS);
     return () => clearInterval(id);
   }, [done]);
+
+  // Quand le déploiement est terminé, on déclenche (une seule fois) l'e-mail
+  // « Votre ERP est prêt » côté serveur. L'idempotence est aussi garantie côté
+  // serveur (`claimReadyNotification`), ce garde évite juste un appel en double.
+  const notifiedRef = useRef(false);
+  useEffect(() => {
+    if (!done || !instanceRef || notifiedRef.current) return;
+    notifiedRef.current = true;
+    void fetch("/api/provisioning/notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ref: instanceRef }),
+    }).catch(() => {
+      // Échec réseau : non bloquant pour l'utilisateur (l'écran reste « prêt »).
+    });
+  }, [done, instanceRef]);
 
   // Nombre d'étapes terminées (chaque étape = 25 %) et étape active courante.
   const completed = Math.min(STEPS.length, Math.floor(progress / 25));
