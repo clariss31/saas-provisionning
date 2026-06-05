@@ -10,54 +10,6 @@ Pour la spécification fonctionnelle complète, voir [SPEC.md](SPEC.md).
 
 ---
 
-## Épique 1 — Authentification & accès
-
-### US 1.1 — Connexion
-
-- **En tant que :** indépendant non authentifié
-- **Je veux :** saisir mes identifiants (identifiant et mot de passe)
-- **Afin de :** accéder à mon tableau de bord
-
-**GIVEN** je suis un utilisateur sur la page de connexion
-**WHEN** je saisis des identifiants valides et que je clique sur « Se connecter »
-**THEN** le système valide mes accès via l'API, établit une connexion
-sécurisée et me redirige vers le tableau de bord.
-
-**Critères d'acceptation :**
-
-- Le système valide les identifiants en communiquant avec l'API REST de
-  Dolibarr.
-- Une erreur claire et explicite s'affiche en cas d'identifiants incorrects
-  ou de compte inexistant.
-- L'accès aux pages protégées par token reste bloqué tant que
-  l'authentification n'est pas confirmée.
-- Après une connexion réussie, l'utilisateur est automatiquement redirigé
-  vers le tableau de bord.
-
-### US 1.2 — Protection des routes et persistance de session
-
-- **En tant que :** utilisateur authentifié
-- **Je veux :** que ma session reste active et que les pages sensibles
-  soient protégées
-- **Afin de :** naviguer sans me reconnecter tout en gardant mes accès
-  sécurisés
-
-**GIVEN** je dispose d'un token valide émis après ma connexion
-**WHEN** je navigue vers une page protégée ou que je rafraîchis l'application
-**THEN** le système vérifie la validité du token et m'autorise l'accès, ou
-me redirige vers la page de connexion si le token est absent ou expiré.
-
-**Critères d'acceptation :**
-
-- Le token n'est jamais exposé dans l'URL ni stocké en clair.
-- Toute tentative d'accès à une route protégée sans token valide redirige
-  vers la page de connexion.
-- À l'expiration du token, une nouvelle authentification est demandée sans
-  perte du contexte de navigation.
-- La déconnexion invalide la session et purge le token côté client.
-
----
-
 ## Épique 2 — Pages vitrines (Accueil & Fonctionnalités)
 
 ### US 2.1 — Consulter la proposition de valeur
