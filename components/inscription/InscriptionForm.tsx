@@ -12,7 +12,11 @@ import Link from "next/link";
 import Icon from "@/components/ui/Icon";
 import SubdomainField, { type SubdomainStatus } from "./SubdomainField";
 import ModernField, { MODERN_CONTROL } from "./ModernField";
-import { scorePassword, PASSWORD_MIN_LENGTH } from "@/lib/instances/password";
+import {
+  scorePassword,
+  hashPassword,
+  PASSWORD_MIN_LENGTH,
+} from "@/lib/instances/password";
 import ProvisioningDashboard from "@/components/provisioning/ProvisioningDashboard";
 
 type Props = {
@@ -85,6 +89,10 @@ export default function InscriptionForm({ domain, masterUrl, job, billing }: Pro
   const [password, setPassword] = useState("");
 
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  // Réf de l'instance créée (transmise au dashboard pour l'e-mail « prêt »).
+  const [instanceRef, setInstanceRef] = useState<string | null>(null);
 
   // Accessibilité : focus sur le titre de l'étape à chaque changement.
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -106,6 +114,7 @@ export default function InscriptionForm({ domain, masterUrl, job, billing }: Pro
       <ProvisioningDashboard
         companyName={companyName.trim() || "votre entreprise"}
         accessUrl={masterUrl}
+        instanceRef={instanceRef}
       />
     );
   }
@@ -124,14 +133,48 @@ export default function InscriptionForm({ domain, masterUrl, job, billing }: Pro
         )}
 
         <form
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault();
-            if (!step3Valid) return;
-            // TODO(Lot 4) : POST /api/inscription { companyName, subdomain,
-            //   managerName, legalStatus, vat, email, password (haché), job,
-            //   billing } → crée le contrat puis redirige vers /provisioning/[ref].
-            //   Pour l'instant (mode mock), on affiche un récapitulatif local.
-            setSubmitted(true);
+            if (!step3Valid || submitting) return;
+            setSubmitting(true);
+            setSubmitError(null);
+            try {
+              // Le mot de passe est haché avant l'envoi : le clair ne quitte
+              // jamais le navigateur.
+              const passwordHash = await hashPassword(password);
+              const res = await fetch("/api/inscription", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  companyName,
+                  managerName,
+                  legalStatus,
+                  vat,
+                  email,
+                  passwordHash,
+                  job,
+                  billing,
+                }),
+              });
+              if (!res.ok) {
+                const data = (await res.json().catch(() => null)) as
+                  | { error?: string }
+                  | null;
+                throw new Error(data?.error ?? "La création a échoué. Réessayez.");
+              }
+              // Succès : on récupère la réf, puis on bascule sur le dashboard.
+              const data = (await res.json().catch(() => null)) as
+                | { ref?: string }
+                | null;
+              setInstanceRef(typeof data?.ref === "string" ? data.ref : null);
+              setSubmitted(true);
+            } catch (err) {
+              setSubmitError(
+                err instanceof Error ? err.message : "Une erreur est survenue.",
+              );
+            } finally {
+              setSubmitting(false);
+            }
           }}
           noValidate
         >
@@ -346,17 +389,31 @@ export default function InscriptionForm({ domain, masterUrl, job, billing }: Pro
                 </div>
               </div>
 
+              {submitError && (
+                <p
+                  role="alert"
+                  className="rounded-xl bg-danger-light px-4 py-3 text-[13px] text-danger"
+                >
+                  {submitError}
+                </p>
+              )}
+
               <StepActions
                 back={
-                  <button type="button" onClick={() => setStep(2)} className={BACK_CLASS}>
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    disabled={submitting}
+                    className={BACK_CLASS}
+                  >
                     <Icon name="arrow-left" size={18} />
                     Retour
                   </button>
                 }
                 primary={
-                  <PrimaryButton type="submit" disabled={!step3Valid}>
-                    Créer mon instance
-                    <Icon name="arrow-right" size={18} />
+                  <PrimaryButton type="submit" disabled={!step3Valid || submitting}>
+                    {submitting ? "Création en cours…" : "Créer mon instance"}
+                    {!submitting && <Icon name="arrow-right" size={18} />}
                   </PrimaryButton>
                 }
               />

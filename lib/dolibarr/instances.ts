@@ -34,6 +34,10 @@ export type CreateInstanceInput = {
    * journaliser ni le renvoyer au client.
    */
   password: string;
+  /** Statut juridique (configurera la fiscalité de l'instance, cf. étape 2). */
+  legalStatus?: string;
+  /** Assujettissement à la TVA. */
+  vatLiable?: boolean;
   /** Contexte commercial (non déterminant tant que l'instance est unique). */
   job?: string;
   billing?: string;
@@ -106,6 +110,29 @@ export async function getInstanceStatus(
     : liveGetInstanceStatus(ref);
 }
 
+/** Coordonnées d'envoi de l'e-mail « instance prête ». */
+export type ReadyNotification = {
+  to: string;
+  companyName: string;
+  url: string;
+};
+
+/**
+ * Réclame (une seule fois) l'envoi de l'e-mail « votre ERP est prêt » pour une
+ * instance déployée. **Idempotent** : renvoie les coordonnées au premier appel,
+ * puis `null` (déjà notifié, instance inconnue, ou pas encore déployée).
+ *
+ * Appelé par la route de notification quand le provisioning est terminé — c'est
+ * le serveur qui retrouve le destinataire à partir de la réf (jamais le client).
+ */
+export async function claimReadyNotification(
+  ref: string,
+): Promise<ReadyNotification | null> {
+  return getDolibarrMode() === "mock"
+    ? mockClaimReadyNotification(ref)
+    : liveClaimReadyNotification(ref);
+}
+
 // ---------------------------------------------------------------------------
 // Implémentation MOCK (simulation en mémoire — mode `mock`)
 // ---------------------------------------------------------------------------
@@ -128,7 +155,14 @@ const MOCK_TAKEN = new Set([
  */
 const mockInstances = new Map<
   string,
-  { subdomain: string; createdAt: number }
+  {
+    subdomain: string;
+    createdAt: number;
+    email: string;
+    companyName: string;
+    /** L'e-mail « prêt » n'est envoyé qu'une fois (idempotence). */
+    notified: boolean;
+  }
 >();
 
 function mockIsSubdomainAvailable(subdomain: string): boolean {
@@ -138,7 +172,13 @@ function mockIsSubdomainAvailable(subdomain: string): boolean {
 function mockCreateInstance(input: CreateInstanceInput): CreateInstanceResult {
   // Réf lisible et unique : préfixe contrat + horodatage en base 36.
   const ref = `CT-${Date.now().toString(36).toUpperCase()}`;
-  mockInstances.set(ref, { subdomain: input.subdomain, createdAt: Date.now() });
+  mockInstances.set(ref, {
+    subdomain: input.subdomain,
+    createdAt: Date.now(),
+    email: input.email,
+    companyName: input.companyName,
+    notified: false,
+  });
   // Le sous-domaine devient indisponible pour les vérifications suivantes.
   MOCK_TAKEN.add(input.subdomain);
   return {
@@ -165,6 +205,22 @@ function mockGetInstanceStatus(ref: string): InstanceStatus | null {
     url: instanceUrl(record.subdomain),
     state,
     step,
+  };
+}
+
+/**
+ * Mock : renvoie les coordonnées au premier appel, puis `null` (idempotent). On
+ * ne re-vérifie pas le statut temporel ici — c'est le tableau de bord (source de
+ * la simulation) qui déclenche l'appel une fois « prêt ».
+ */
+function mockClaimReadyNotification(ref: string): ReadyNotification | null {
+  const record = mockInstances.get(ref);
+  if (!record || record.notified) return null;
+  record.notified = true;
+  return {
+    to: record.email,
+    companyName: record.companyName,
+    url: instanceUrl(record.subdomain),
   };
 }
 
@@ -270,4 +326,13 @@ async function liveGetInstanceStatus(
     state: deployed ? "deployed" : "deploying",
     step: deployed ? PROVISIONING_STEPS : 1,
   };
+}
+
+// TODO(Lot 7): implémenter la notification « prête » en live — lire le contrat,
+//   vérifier qu'il est DÉPLOYÉ, et utiliser un champ (extrafield) pour garantir
+//   l'idempotence (un seul e-mail). En attendant, on ne notifie pas en live.
+async function liveClaimReadyNotification(
+  _ref: string,
+): Promise<ReadyNotification | null> {
+  return null;
 }
