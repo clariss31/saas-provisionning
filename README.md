@@ -69,6 +69,21 @@ e-mails sont journalisés en console.
 
 ---
 
+## Workflow Git
+
+- **Ne jamais coder directement sur `main`.** Chaque évolution se fait sur une
+  **branche dédiée** (`git switch -c ma-feature`), nommée d'après la
+  fonctionnalité (ex. `contact-page`, `tunnel-inscription`).
+- **Se placer sur la bonne branche AVANT de coder** (`git switch ma-feature`) :
+  toujours vérifier `git branch --show-current` au démarrage d'une session.
+- Intégration via **Pull Request** vers `main` (cf. l'historique : `#5 pricing`,
+  `#6 contact-page`).
+- **Aucun secret dans git.** Les clés (MailJet, `DOLAPIKEY`…) vivent uniquement
+  dans `.env.local` (ignoré par git) ; seul [.env.example](.env.example) — sans
+  valeur — est versionné.
+
+---
+
 ## Structure du projet
 
 ```

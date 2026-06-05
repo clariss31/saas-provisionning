@@ -1,11 +1,16 @@
+import Mailjet from "node-mailjet";
 import { CONTACT_SUBJECTS, type ContactData } from "./validation";
 
 /**
- * Transport e-mail du formulaire de contact.
+ * Transport e-mail du formulaire de contact (US 7.1).
  *
  * ⚠️ Module strictement serveur : il n'est importé que par la Server Action
- * (`app/(public)/contact/actions.ts`). Le destinataire réel n'est donc jamais
- * exposé au client.
+ * (`app/(public)/contact/actions.ts`). Ni le destinataire réel ni les clés
+ * MailJet ne sont donc exposés au client.
+ *
+ * Envoi via **MailJet** (Send API v3.1) dès que les clés sont configurées
+ * (`MJ_APIKEY_PUBLIC` / `MJ_APIKEY_PRIVATE`). À défaut, repli sur une simple
+ * journalisation côté serveur — pratique en développement, sans bloquer l'envoi.
  */
 
 /**
@@ -15,9 +20,15 @@ import { CONTACT_SUBJECTS, type ContactData } from "./validation";
  * (`contact@provi.com`), qui n'est qu'un libellé public. On ne fait jamais
  * confiance à un éventuel destinataire transmis par le client.
  */
-const CONTACT_RECIPIENT = "support@pichinov.com";
+const CONTACT_RECIPIENT = "clarisse.ferand@gmail.com";
 
-/** Message e-mail prêt à être remis à un transport (SMTP, API, …). */
+/**
+ * Adresse expéditrice des e-mails sortants. Doit être un expéditeur **validé**
+ * dans MailJet, sinon l'API rejette l'envoi.
+ */
+const MAIL_FROM = process.env.MAIL_FROM ?? "contact@pichinov.com";
+
+/** Message e-mail prêt à être remis à un transport (API MailJet, log…). */
 type OutgoingEmail = {
   to: string;
   /** Permet de répondre directement à l'expéditeur (adresse validée). */
@@ -51,36 +62,59 @@ function buildEmail(data: ContactData): OutgoingEmail {
 }
 
 /**
+ * Envoie l'e-mail via l'API MailJet (Send API v3.1).
+ *
+ * @throws Error si MailJet répond en échec. Le détail technique est journalisé
+ *   côté serveur mais n'est pas propagé à l'UI (message générique côté client).
+ */
+async function sendViaMailjet(
+  email: OutgoingEmail,
+  apiKey: string,
+  apiSecret: string,
+): Promise<void> {
+  const mailjet = Mailjet.apiConnect(apiKey, apiSecret);
+
+  try {
+    await mailjet.post("send", { version: "v3.1" }).request({
+      Messages: [
+        {
+          From: { Email: MAIL_FROM, Name: "Provi" },
+          To: [{ Email: email.to }],
+          // Répondre au message renvoie directement vers le prospect.
+          ReplyTo: { Email: email.replyTo },
+          Subject: email.subject,
+          TextPart: email.text,
+        },
+      ],
+    });
+  } catch (error) {
+    console.error("[contact] échec de l'envoi MailJet :", error);
+    throw new Error("Échec de l'envoi du message via MailJet.");
+  }
+}
+
+/**
  * Remet le message au support (`support@pichinov.com`).
  *
- * Implémentation actuelle volontairement minimale et sans dépendance :
- *  - si la variable d'environnement `CONTACT_FORWARD_URL` est définie, le
- *    message est transmis en `POST` JSON à ce point d'intégration (relais
- *    SMTP, webhook, API du Dolibarr Maître…) — c'est l'emplacement à câbler
- *    en production ;
- *  - sinon, il est journalisé côté serveur (utile en développement).
+ *  - si les clés MailJet sont présentes, l'e-mail est envoyé via MailJet ;
+ *  - sinon, il est journalisé côté serveur (repli de développement).
  *
- * @throws Error si un point d'intégration est configuré mais répond en échec.
+ * @throws Error si MailJet est configuré mais répond en échec.
  */
 export async function sendContactEmail(data: ContactData): Promise<void> {
   const email = buildEmail(data);
-  const forwardUrl = process.env.CONTACT_FORWARD_URL;
+  const apiKey = process.env.MJ_APIKEY_PUBLIC;
+  const apiSecret = process.env.MJ_APIKEY_PRIVATE;
 
-  if (forwardUrl) {
-    const res = await fetch(forwardUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(email),
-    });
-    if (!res.ok) {
-      throw new Error(`Échec de l'envoi du message (HTTP ${res.status}).`);
-    }
+  if (apiKey && apiSecret) {
+    await sendViaMailjet(email, apiKey, apiSecret);
     return;
   }
 
-  // Pas de transport configuré : on trace côté serveur pour ne pas perdre le
-  // message en développement. À remplacer par un envoi réel en production.
+  // Pas de clés configurées : on trace le message côté serveur pour ne pas le
+  // perdre en développement. À remplacer par MailJet en production.
   console.info(
-    `[contact] message destiné à ${email.to} (répondre à ${email.replyTo}) — sujet « ${email.subject} »`,
+    `[contact] (repli dev — MailJet non configuré) message destiné à ${email.to} ` +
+      `(répondre à ${email.replyTo}) — sujet « ${email.subject} »`,
   );
 }
