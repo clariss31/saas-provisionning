@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import Icon from "@/components/ui/Icon";
 
 type Props = {
@@ -8,12 +9,8 @@ type Props = {
   companyName: string;
   /** URL de l'espace une fois déployé (bouton « Accéder à mon espace »). */
   accessUrl: string;
-  /**
-   * Réf de l'instance. Quand le déploiement atteint « prêt », le dashboard
-   * notifie le serveur (`POST /api/provisioning/notify`) pour déclencher
-   * l'e-mail « Votre ERP est prêt ». Optionnelle (pas de notification sans réf).
-   */
-  instanceRef?: string | null;
+  /** Réf de l'instance à suivre — clé du polling de statut. */
+  instanceRef: string;
 };
 
 /** Sous-étapes de déploiement affichées dans le stepper vertical (SPEC page 6). */
@@ -24,72 +21,103 @@ const STEPS = [
   "Génération des accès administrateur",
 ] as const;
 
-/** Durée totale de la simulation (mock) et fréquence de rafraîchissement. */
-const TOTAL_MS = 6000;
-const TICK_MS = 60;
+/** Intervalle d'interrogation (polling) du statut, en millisecondes. */
+const POLL_MS = 2000;
 
 type StepStatus = "done" | "active" | "pending";
+
+/** Statut renvoyé par `GET /api/provisioning/[ref]`. */
+type ProvisioningStatus = {
+  state: "deploying" | "deployed" | "error";
+  step: number;
+};
 
 /**
  * Tableau de bord de provisioning (SPEC page 6, US 6.x).
  *
- * Affiché à la fin du tunnel d'inscription. Pour l'instant, l'avancement est
- * **simulé** côté client (données mockées) : une barre de progression et un
- * stepper vertical passent de « en cours » à « terminé », puis l'état bascule
- * sur le succès avec un bouton vers l'espace déployé.
+ * Affiché sur `/provisioning/[ref]`. Il **interroge en boucle (polling)** la
+ * route `GET /api/provisioning/[ref]` pour suivre l'avancement **réel** du
+ * déploiement (simulé côté serveur en mode mock), jusqu'à l'état « déployé ».
  *
- * À la fin du déploiement, le dashboard déclenche l'e-mail « Votre ERP est prêt »
- * via `POST /api/provisioning/notify` (Lot 4).
- *
- * TODO(Lot 5) : remplacer la simulation client par un vrai polling de
- * `GET /api/provisioning/[ref]` (statut réel issu du Dolibarr Maître).
+ * À la fin, il déclenche l'e-mail « Votre ERP est prêt » via
+ * `POST /api/provisioning/notify` (idempotent côté serveur).
  */
 export default function ProvisioningDashboard({
   companyName,
   accessUrl,
   instanceRef,
 }: Props) {
-  const [progress, setProgress] = useState(0);
-  const done = progress >= 100;
+  const [status, setStatus] = useState<ProvisioningStatus | null>(null);
+  const [notFound, setNotFound] = useState(false);
+  const done = status?.state === "deployed";
 
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     headingRef.current?.focus();
   }, []);
 
-  // Progression simulée : la barre se remplit régulièrement jusqu'à 100 %.
+  // Polling : on interroge le statut toutes les POLL_MS, jusqu'au déploiement.
   useEffect(() => {
-    if (done) return;
-    const id = setInterval(() => {
-      setProgress((p) => Math.min(100, p + (100 * TICK_MS) / TOTAL_MS));
-    }, TICK_MS);
-    return () => clearInterval(id);
-  }, [done]);
+    if (done || notFound) return;
+    let cancelled = false;
 
-  // Quand le déploiement est terminé, on déclenche (une seule fois) l'e-mail
-  // « Votre ERP est prêt » côté serveur. L'idempotence est aussi garantie côté
-  // serveur (`claimReadyNotification`), ce garde évite juste un appel en double.
+    async function poll() {
+      try {
+        const res = await fetch(`/api/provisioning/${instanceRef}`, {
+          cache: "no-store",
+        });
+        if (res.status === 404) {
+          if (!cancelled) setNotFound(true);
+          return;
+        }
+        if (!res.ok) return; // erreur transitoire : on réessaiera au tick suivant
+        const data = (await res.json()) as ProvisioningStatus;
+        if (!cancelled) setStatus(data);
+      } catch {
+        // Échec réseau transitoire : on retentera au prochain tick.
+      }
+    }
+
+    poll(); // premier appel immédiat (pas d'attente initiale)
+    const id = setInterval(poll, POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [done, notFound, instanceRef]);
+
+  // À la fin du déploiement, on déclenche (une seule fois) l'e-mail « prêt ».
+  // L'idempotence est aussi garantie côté serveur (`claimReadyNotification`).
   const notifiedRef = useRef(false);
   useEffect(() => {
-    if (!done || !instanceRef || notifiedRef.current) return;
+    if (!done || notifiedRef.current) return;
     notifiedRef.current = true;
     void fetch("/api/provisioning/notify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ref: instanceRef }),
     }).catch(() => {
-      // Échec réseau : non bloquant pour l'utilisateur (l'écran reste « prêt »).
+      // Échec réseau : non bloquant (l'écran reste « prêt »).
     });
   }, [done, instanceRef]);
 
-  // Nombre d'étapes terminées (chaque étape = 25 %) et étape active courante.
-  const completed = Math.min(STEPS.length, Math.floor(progress / 25));
-  const percent = Math.round(progress);
+  // Dérivés d'affichage : nb d'étapes terminées, étape active, pourcentage.
+  const serverStep = status?.step ?? 0;
+  const completed = done ? STEPS.length : Math.max(0, serverStep - 1);
+  const activeIndex = done ? -1 : Math.min(STEPS.length - 1, completed);
+  const progress = done
+    ? 100
+    : Math.round(((completed + 0.5) / STEPS.length) * 100);
+  const percent = progress;
 
   function statusOf(i: number): StepStatus {
     if (done || i < completed) return "done";
-    if (i === completed) return "active";
+    if (i === activeIndex) return "active";
     return "pending";
+  }
+
+  if (notFound) {
+    return <ProvisioningNotFound />;
   }
 
   return (
@@ -265,5 +293,27 @@ function StepCircle({ status, success }: { status: StepStatus; success: boolean 
   // pending
   return (
     <span className="h-6 w-6 shrink-0 rounded-full border-[1.5px] border-border bg-surface" />
+  );
+}
+
+/** Écran affiché si la réf de suivi est inconnue (ex. serveur redémarré en mock). */
+function ProvisioningNotFound() {
+  return (
+    <div className="flex flex-col items-center rounded-3xl border border-border-light bg-surface p-10 text-center shadow-card md:p-14">
+      <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-danger-light text-danger">
+        <Icon name="x" size={28} />
+      </span>
+      <h1 className="text-[22px] font-bold text-text">Déploiement introuvable</h1>
+      <p className="mt-2 max-w-[420px] text-[13.5px] text-soft">
+        Ce lien de suivi n&apos;est plus valide. Relancez une inscription pour
+        créer votre espace.
+      </p>
+      <Link
+        href="/inscription"
+        className="mt-6 text-[13px] font-medium text-accent-dark hover:underline"
+      >
+        Retour à l&apos;inscription
+      </Link>
+    </div>
   );
 }

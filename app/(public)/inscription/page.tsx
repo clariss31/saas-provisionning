@@ -28,9 +28,6 @@ export default async function InscriptionPage({
 }) {
   const { job, billing } = await searchParams;
   const domain = process.env.INSTANCE_DOMAIN ?? "pichinov.fr";
-  // URL de l'espace déployé (bouton final du provisioning). Lue côté serveur
-  // depuis l'environnement pour ne pas figer d'URL interne dans le code versionné.
-  const masterUrl = process.env.MASTER_INSTANCE_URL ?? "#";
 
   return (
     // Fond lavande pleine hauteur, tunnel centré (cf. DESIGN — écran formulaire,
@@ -43,7 +40,6 @@ export default async function InscriptionPage({
 
         <InscriptionForm
           domain={domain}
-          masterUrl={masterUrl}
           job={job ?? null}
           billing={billing ?? null}
         />

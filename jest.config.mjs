@@ -17,6 +17,10 @@ const config = {
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
   },
+  // Exécution sérielle (un seul worker) : la suite est petite (~7 s) et cela
+  // évite les crashes intermittents de workers parallèles observés sous Windows
+  // (« Jest worker encountered child process exceptions »).
+  maxWorkers: 1,
 };
 
 export default createJestConfig(config);

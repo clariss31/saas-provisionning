@@ -9,6 +9,7 @@ import {
   type ButtonHTMLAttributes,
 } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
 import SubdomainField, { type SubdomainStatus } from "./SubdomainField";
 import ModernField, { MODERN_CONTROL } from "./ModernField";
@@ -17,17 +18,10 @@ import {
   hashPassword,
   PASSWORD_MIN_LENGTH,
 } from "@/lib/instances/password";
-import ProvisioningDashboard from "@/components/provisioning/ProvisioningDashboard";
 
 type Props = {
   /** Domaine racine des instances (fourni par le serveur, ex. « pichinov.fr »). */
   domain: string;
-  /**
-   * URL de l'espace une fois déployé (bouton « Accéder à mon espace »). Fournie
-   * par le serveur depuis `MASTER_INSTANCE_URL` afin de ne pas figer d'URL
-   * interne dans le code versionné.
-   */
-  masterUrl: string;
   /** Métier pré-sélectionné via `?job=` (contexte, non déterminant pour le MVP). */
   job: string | null;
   /** Engagement pré-sélectionné via `?billing=`. */
@@ -68,11 +62,12 @@ const STRENGTH_COLORS = ["bg-danger", "bg-danger", "bg-warning", "bg-info", "bg-
  *  2. **Fiscalité** — statut juridique + assujettissement à la TVA.
  *  3. **Identifiants** — e-mail + mot de passe (jauge de robustesse).
  *
- * Chaque étape est **verrouillée** tant que ses champs ne sont pas valides. La
- * soumission finale (création de l'instance) sera branchée au Lot 4 ; pour
- * l'instant, on affiche un récapitulatif.
+ * Chaque étape est **verrouillée** tant que ses champs ne sont pas valides. À la
+ * soumission, l'instance est créée (`POST /api/inscription`) puis on redirige
+ * vers le suivi du déploiement (`/provisioning/[ref]`).
  */
-export default function InscriptionForm({ domain, masterUrl, job, billing }: Props) {
+export default function InscriptionForm({ domain, job, billing }: Props) {
+  const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Étape 1 — Identité
@@ -88,17 +83,14 @@ export default function InscriptionForm({ domain, masterUrl, job, billing }: Pro
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  // Réf de l'instance créée (transmise au dashboard pour l'e-mail « prêt »).
-  const [instanceRef, setInstanceRef] = useState<string | null>(null);
 
   // Accessibilité : focus sur le titre de l'étape à chaque changement.
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     headingRef.current?.focus();
-  }, [step, submitted]);
+  }, [step]);
 
   const strength = scorePassword(password);
   const emailValid = EMAIL_RE.test(email);
@@ -106,18 +98,6 @@ export default function InscriptionForm({ domain, masterUrl, job, billing }: Pro
     subdomainStatus === "available" && managerName.trim().length >= 2;
   const step2Valid = legalStatus !== "" && vat !== "";
   const step3Valid = emailValid && strength.acceptable;
-
-  if (submitted) {
-    // Fin du tunnel : on bascule sur le tableau de bord de provisioning, qui
-    // simule le déploiement (mock) puis propose l'accès à l'espace.
-    return (
-      <ProvisioningDashboard
-        companyName={companyName.trim() || "votre entreprise"}
-        accessUrl={masterUrl}
-        instanceRef={instanceRef}
-      />
-    );
-  }
 
   return (
     <>
@@ -162,12 +142,16 @@ export default function InscriptionForm({ domain, masterUrl, job, billing }: Pro
                   | null;
                 throw new Error(data?.error ?? "La création a échoué. Réessayez.");
               }
-              // Succès : on récupère la réf, puis on bascule sur le dashboard.
+              // Succès : on récupère la réf et on redirige vers le suivi.
               const data = (await res.json().catch(() => null)) as
                 | { ref?: string }
                 | null;
-              setInstanceRef(typeof data?.ref === "string" ? data.ref : null);
-              setSubmitted(true);
+              if (!data?.ref) {
+                throw new Error("Réponse inattendue du serveur.");
+              }
+              router.push(
+                `/provisioning/${data.ref}?company=${encodeURIComponent(companyName.trim())}`,
+              );
             } catch (err) {
               setSubmitError(
                 err instanceof Error ? err.message : "Une erreur est survenue.",
