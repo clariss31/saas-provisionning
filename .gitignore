@@ -38,6 +38,9 @@ yarn-error.log*
 # …mais on versionne le template (sans secret) pour documenter les variables.
 !.env.example
 
+#docs files
+docs/*
+
 # vercel
 .vercel
 
