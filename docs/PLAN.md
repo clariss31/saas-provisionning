@@ -7,7 +7,7 @@ pages vitrines (Accueil, Fonctionnalités, Catalogue métiers, Tarifs) et un
 formulaire de contact validé/sécurisé. Il manque tout le **cœur fonctionnel** :
 le tunnel d'inscription (Page 5), le tableau de bord de provisioning (Page 6), la
 vérification du sous-domaine (US 5.2) et toute la **communication backend** avec
-le Dolibarr Maître (`kaleido.pichinov.fr`) qui, via **Sell Your SaaS**, doit
+le Dolibarr Maître qui, via **Sell Your SaaS**, doit
 cloner une instance Dolibarr par client sur la VM de l'hébergeur (7724).
 
 Décisions validées avec l'utilisateur :
@@ -79,7 +79,7 @@ documentée et outillée par le **skill**.
 Le point de câblage existe déjà : [lib/contact/email.ts](lib/contact/email.ts)
 envoie soit vers `CONTACT_FORWARD_URL`, soit en log. On ajoute `node-mailjet` et
 on remplace l'implémentation de `sendContactEmail` par un envoi MailJet
-(`MJ_APIKEY_PUBLIC` / `MJ_APIKEY_PRIVATE`, expéditeur `noreply@kaleido.pichinov.fr`,
+(`MJ_APIKEY_PUBLIC` / `MJ_APIKEY_PRIVATE`, expéditeur `noreply@votre-domaine.fr`,
 `Reply-To` = e-mail du prospect, destinataire `support@pichinov.com`). La Server
 Action [actions.ts](<app/(public)/contact/actions.ts>) et la validation restent inchangées.
 
