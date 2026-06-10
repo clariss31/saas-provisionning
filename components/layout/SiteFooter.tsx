@@ -12,14 +12,14 @@ const COLUMNS: FooterColumn[] = [
     links: [
       { label: "Tarifs", href: "/tarifs" },
       { label: "Fonctionnalités", href: "/fonctionnalites" },
-      { label: "Sécurité", href: "/fonctionnalites#securite" },
+      { label: "Métiers", href: "/metiers" },
     ],
   },
   {
     title: "Légal & Contact",
     links: [
-      { label: "CGU", href: "#" },
-      { label: "Confidentialité", href: "#" },
+      { label: "CGU", href: "/cgu" },
+      { label: "Confidentialité", href: "/confidentialite" },
       { label: "Contact", href: "/contact" },
     ],
   },
@@ -42,7 +42,7 @@ export default function SiteFooter() {
         {/* Colonnes de liens */}
         {COLUMNS.map((column) => (
           <div key={column.title} className="flex flex-col space-y-3">
-            <span className="mb-1 text-[12.5px] font-medium text-text">
+            <span className="mb-3 text-[14px] font-medium text-text">
               {column.title}
             </span>
             {column.links.map((link) => (

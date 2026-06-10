@@ -32,7 +32,7 @@ const PLANS: Plan[] = [
     tagline: "Pour les indépendants qui débutent.",
     monthlyPrice: 10,
     cta: "Démarrer l'essai gratuit",
-    href: "/job",
+    href: "/metiers",
     features: [
       { label: "1 utilisateur inclus", included: true },
       { label: "Facturation standard", included: true },
@@ -45,7 +45,7 @@ const PLANS: Plan[] = [
     tagline: "L'équilibre parfait pour la croissance.",
     monthlyPrice: 50,
     cta: "Démarrer l'essai gratuit",
-    href: "/job",
+    href: "/metiers",
     highlighted: true,
     features: [
       { label: "Jusqu'à 5 utilisateurs", included: true },
@@ -59,7 +59,7 @@ const PLANS: Plan[] = [
     tagline: "Pour les entreprises établies.",
     monthlyPrice: 100,
     cta: "Démarrer l'essai gratuit",
-    href: "/job",
+    href: "/metiers",
     features: [
       { label: "Utilisateurs illimités", included: true },
       { label: "Tous les modules inclus", included: true },
