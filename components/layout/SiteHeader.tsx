@@ -7,7 +7,7 @@ import Logo from "./Logo";
 
 const NAV_LINKS = [
   { label: "Fonctionnalités", href: "/fonctionnalites" },
-  { label: "Métiers", href: "/job" },
+  { label: "Métiers", href: "/metiers" },
   { label: "Tarifs", href: "/tarifs" },
   { label: "Contact", href: "/contact" },
 ];
@@ -63,7 +63,7 @@ export default function SiteHeader() {
         {/* Actions */}
         <div className="flex items-center gap-4">
           <Link
-            href="/job"
+            href="/metiers"
             className="inline-flex h-[38px] items-center justify-center rounded-lg bg-accent px-5 text-[12.5px] font-medium text-white shadow-card transition-all hover:-translate-y-px hover:shadow-lift"
           >
             Démarrer
