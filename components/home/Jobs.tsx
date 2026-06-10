@@ -17,7 +17,7 @@ type Job = {
 
 /**
  * Les 4 profils types (cf. SPEC §1.3). Sur la page d'accueil, il s'agit d'un
- * aperçu : le clic mène au catalogue `/job` en pré-sélectionnant le métier
+ * aperçu : le clic mène au catalogue `/metiers` en pré-sélectionnant le métier
  * via le paramètre `?job=`.
  */
 const JOBS: Job[] = [
@@ -81,7 +81,7 @@ export default function Jobs() {
           {JOBS.map((job) => (
             <li key={job.slug}>
               <Link
-                href={`/job?job=${job.slug}`}
+                href={`/metiers?job=${job.slug}`}
                 className="group flex h-full flex-col rounded-2xl border border-border-light bg-content p-5 shadow-card transition-all duration-300 hover:shadow-lift"
               >
                 <div className="relative mb-4 aspect-video w-full overflow-hidden rounded-xl">
@@ -104,7 +104,7 @@ export default function Jobs() {
         </ul>
 
         <div className="mt-12 flex justify-center">
-          <ButtonLink href="/job" size="lg" withArrow>
+          <ButtonLink href="/metiers" size="lg" withArrow>
             Voir les métiers
           </ButtonLink>
         </div>

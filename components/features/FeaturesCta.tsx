@@ -36,7 +36,7 @@ export default function FeaturesCta() {
 
           <div className="flex w-full flex-col items-center justify-center gap-4 sm:w-auto sm:flex-row">
             <ButtonLink
-              href="/job"
+              href="/metiers"
               variant="white"
               size="lg"
               className="w-full sm:w-auto"
