@@ -28,10 +28,11 @@ const COLUMNS: FooterColumn[] = [
 /** Pied de page des pages vitrines : marque + colonnes de liens. */
 export default function SiteFooter() {
   return (
-    <footer className="mt-auto w-full border-t border-border-light bg-surface px-16 py-12">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 md:grid-cols-3">
-        {/* Colonne marque */}
-        <div className="flex flex-col items-start space-y-4">
+    <footer className="mt-auto w-full border-t border-border-light bg-surface px-6 py-12 sm:px-10 md:px-16">
+      <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 md:grid-cols-3">
+        {/* Colonne marque : pleine largeur sur mobile (au-dessus des deux
+            colonnes de liens, qui restent côte à côte), une colonne dès `md`. */}
+        <div className="col-span-2 flex flex-col items-start space-y-4 md:col-span-1">
           <Logo size={24} wordmarkClassName="text-[18px]" />
           <p className="max-w-xs text-[11.5px] leading-4 text-soft">
             © 2026 Provi SAS. Fabriqué avec passion pour les artisans et

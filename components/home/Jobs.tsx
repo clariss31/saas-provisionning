@@ -81,7 +81,7 @@ export default function Jobs() {
           {JOBS.map((job) => (
             <li key={job.slug}>
               <Link
-                href={`/metiers?job=${job.slug}`}
+                href={`/inscription?job=${job.slug}`}
                 className="group flex h-full flex-col rounded-2xl border border-border-light bg-content p-5 shadow-card transition-all duration-300 hover:shadow-lift"
               >
                 <div className="relative mb-4 aspect-video w-full overflow-hidden rounded-xl">
