@@ -120,7 +120,7 @@ export default function SiteHeader() {
                 est repris en pleine largeur dans le tiroir. */}
             <Link
               href="/metiers"
-              className="hidden h-[38px] items-center justify-center rounded-lg bg-accent px-5 text-[12.5px] font-medium text-white shadow-card transition-all hover:-translate-y-px hover:shadow-lift md:inline-flex"
+              className="hidden h-[38px] items-center justify-center rounded-lg bg-accent-dark px-5 text-[12.5px] font-medium text-white shadow-card transition-all hover:-translate-y-px hover:shadow-lift md:inline-flex"
             >
               Démarrer
             </Link>
@@ -205,7 +205,7 @@ export default function SiteHeader() {
               <Link
                 href="/metiers"
                 onClick={() => setMenuOpen(false)}
-                className="flex h-12 items-center justify-center rounded-lg bg-accent px-5 text-[14px] font-medium text-white shadow-card transition-all hover:-translate-y-px hover:shadow-lift"
+                className="flex h-12 items-center justify-center rounded-lg bg-accent-dark px-5 text-[14px] font-medium text-white shadow-card transition-all hover:-translate-y-px hover:shadow-lift"
               >
                 Démarrer
               </Link>

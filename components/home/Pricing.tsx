@@ -167,7 +167,7 @@ export default function Pricing({
               Annuel
             </button>
           </div>
-          <span className="rounded-full bg-pink-light px-2 py-0.5 text-[11px] font-bold tracking-tight text-pink uppercase">
+          <span className="rounded-full bg-pink-light px-2 py-0.5 text-[11px] font-bold tracking-tight text-pink-dark uppercase">
             −20%
           </span>
         </div>
