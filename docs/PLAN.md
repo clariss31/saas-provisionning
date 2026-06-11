@@ -1,5 +1,40 @@
 # Plan d'action — Provisionner une vraie instance Dolibarr en fin de tunnel (OODA)
 
+**Où on en est :** la **config back-office SYS est complète** (package Fleuriste + service Application),
+mais le **déploiement réel est BLOQUÉ** : il faut un **serveur de déploiement Linux (root)** et le VPS OVH
+existant (`vps-256e7885`, IP `217.182.252.69`) est un **VPS Windows** (la réinstall ne propose que Windows)
+→ **inexploitable par SYS**. **Action en attente : commander un VPS Linux (Ubuntu 24.04 LTS)** — décision
+d'achat côté Pichinov (`jose.martinez@pichinov.com`).
+
+**Architecture validée :** SYS. **Master** = Dolibarr+module SYS sur **hébergement OVH mutualisé Performance**.
+Les **instances clientes se déploieront sur un VPS Linux (root)** = serveur de déploiement (le mutualisé ne sert
+qu'au back-office). Le skill `sellyoursaas` est installé localement (réf. opérationnelle).
+
+**Accès & emplacements (Master, en SSH) :**
+- SSH Master : `ssh ridinteadu-fabrice@ssh02.cluster128.gra.hosting.ovh.net` (offre Performance, SSH activé)
+- DATA_ROOT : `/home/ridinteadu/kaleido/dolibarr/documents`
+- Image déployable : `…/documents/sellyoursaas/git/dolibarr_24.0` (Dolibarr 24.0-beta + **Kaleido** dans `htdocs/custom/kaleido`)
+- Dump Fleuriste : `…/documents/sellyoursaas/packages/Fleuriste/fleuriste.sql` (286 tables, admin `pass='admin'`)
+- Install de référence (sert à produire les dumps) : `https://ref.pichinov.fr` → dossier `~/kaleido/reference`,
+  base MySQL **`ridinteaduprovi`** / hôte **`ridinteaduprovi.mysql.db`** / admin Dolibarr `admin` / `adminadmin`.
+
+**✅ Fait :** skill `sellyoursaas` · image+Kaleido · **package Fleuriste** (cf. valeurs des champs dans l'historique
++ structure dans le **Runbook** plus bas) · **service Application Fleuriste** (type *Application*, relié au package,
+**30 j gratuits**, en vente, prix 0, SSH/DB=Non).
+
+**⬜ Dès que le VPS Linux est là :**
+1. Nouvelle **IP** → mettre à jour `MAIN_EXTERNAL_SMTP_CLIENT_IP_ADDRESS` du package (remplacer `217.182.252.69`)
+   + créer le **DNS wildcard** `*.with1.pichinov.fr → nouvelle IP` (+ reverse DNS/PTR).
+2. **Installer le serveur de déploiement SYS** sur le VPS (Phases 1‑3, cf. Lot 9). ⚠️ Mettre **le Master AUSSI
+   sur le VPS** (le mutualisé ne peut pas exporter le NFS attendu par SYS → archi mono-serveur).
+3. **Câbler le mode `live`** de l'app Next.js (Lot 8).
+
+**🟢 Avançable SANS le VPS (sur le Master + install de référence) :** définir les **modules Dolibarr à activer par
+métier** (4 templates du [SPEC](SPEC.md)) + construire les **3 autres packages** (freelance, garagiste, artisan BTP)
+via le **Runbook**. *(Non testable tant que le VPS n'est pas prêt, mais le contenu se prépare.)*
+
+---
+
 ## Observe — où on en est
 
 Le **parcours complet est déjà livré en mode simulé** (`DOLIBARR_MODE=mock`) :
@@ -95,10 +130,16 @@ sur le VPS et **un seul wildcard DNS** `*.with1.pichinov.fr → IP VPS` suffit (
   *(Kaleido baké dans l'image + le dump = option recommandée, pas de script post-déploiement.)*
 - ✅ **Service Application Fleuriste** : service Dolibarr (type *Application*) relié au **package Fleuriste**,
   **30 jours d'essai gratuit**, en vente, prix 0 (MVP sans paiement), accès SSH/DB = Non.
-- ⬜ **Serveur de déploiement** : transformer le **VPS OVH** (IP `217.182.252.69`) en serveur SYS — install
-  **root** : Apache/MySQL/agent SYS/jails/Postfix/certbot wildcard/AppArmor + montage NFS depuis le Master.
-  ⚠️ Le Master étant sur mutualisé (pas d'export NFS possible), il faudra sans doute **mettre le Master AUSSI
-  sur le VPS** (SYS autorise Master+Déploiement sur un même serveur en petite infra).
+- 🔴 **Serveur de déploiement = BLOQUÉ** : il faut un **VPS Linux (root)**. Le VPS OVH existant
+  (`vps-256e7885`, IP `217.182.252.69`) est un **VPS Windows** (réinstall ne propose que Windows) →
+  inexploitable. **À commander : un VPS Linux Ubuntu 24.04 LTS** (~4‑8 Go RAM suffisent pour démarrer/tester).
+  Ensuite, install **root** : Apache/MySQL/agent SYS/jails/Postfix/certbot wildcard/AppArmor + crons SYS.
+  ⚠️ Le Master étant sur mutualisé (pas d'export NFS possible), **mettre le Master AUSSI sur le VPS**
+  (SYS autorise Master+Déploiement cumulés en petite infra).
+  - **Feuille de route install (depuis la doc SYS) :** Phase 1 OS & base (hostname, disque data, comptes/SSH,
+    `git clone` Dolibarr+SYS, `/etc/sellyoursaas.conf`) → Phase 2 composants (Apache, MySQL/MariaDB, PHP,
+    agent de déploiement, Jailkit, AppArmor, Postfix, certbot+**cert wildcard**, firewall/fail2ban, crons) →
+    Phase 3 Dolibarr + plugin SYS + récupération de la config Master.
 - ⬜ **DNS wildcard** `*.with1.pichinov.fr → 217.182.252.69` + **reverse DNS (PTR)** sur l'IP du VPS.
 - ⬜ **DOLAPIKEY** de service (consommé par le Lot 8).
 ---
