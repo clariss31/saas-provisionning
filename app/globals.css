@@ -17,7 +17,10 @@
   --color-topbar-bg:     #ffffff;
 
   --color-text:          #1F1F2E;
-  --color-soft:          #6B7280;
+  /* Gris secondaire légèrement assombri (#6B7280 → ici) pour franchir 4.5:1
+     (WCAG AA) sur le fond lavande `content` (#f8f4fb), où il plafonnait à
+     ~4.45:1. Écart imperceptible, reste conforme sur blanc (~5.1:1). */
+  --color-soft:          #686E7C;
   --color-muted:         #9CA3AF;
   --color-muted-light:   #f2f4f7;
   --color-icon-color:    #b0a8d4;
@@ -27,11 +30,14 @@
   --color-border-light:  #f5f2f9;
 
   /* ── Accent (primary) ── */
-  --color-accent:        #6C63F0;
+  /* #6C63F0 plafonnait à ~4.49:1 sur blanc (juste sous le seuil AA, aussi bien
+     en texte accent qu'en texte blanc sur aplat accent). Assombri très
+     légèrement pour atteindre ~4.7:1 sans changement perceptible. */
+  --color-accent:        #6960EA;
   --color-accent-light:  #EDE9FE;
-  /* Teinte foncée (Kaleïdo « surface-tint ») réservée aux aplats portant du
-     texte blanc : garantit un contraste ≥ 4.5:1 (WCAG AA), là où #6C63F0
-     plafonne à ~4.49:1 sur blanc. */
+  /* Teinte foncée (Kaleïdo « surface-tint ») : marge de contraste renforcée
+     (~6.4:1 sur blanc) pour le texte accent dense (prix, titres) et le texte
+     blanc sur aplat accent. */
   --color-accent-dark:   #5348d5;
   --color-primary:       var(--color-accent);
   --color-primary-light: var(--color-accent-light);
@@ -47,6 +53,10 @@
   --color-danger-light:  #fff1f2;
   --color-pink:          #ec4899;
   --color-pink-light:    #fdf2f7;
+  /* Rose foncé : réservé au texte rose sur fond clair (badge « −20% »). Le rose
+     vif #ec4899 ne plafonne qu'à ~3.2:1 sur `pink-light` ; cette teinte atteint
+     ≥ 4.5:1 (WCAG AA) sans toucher au rose décoratif (icônes, halos). */
+  --color-pink-dark:     #BF3A7C;
   --color-yellow:        #ef9f27;
   --color-yellow-light:  #fef9ec;
   --color-purple:        #8b5cf6;
@@ -112,6 +122,9 @@
   --color-danger-light:  rgba(248, 113, 113, 0.1);
   --color-pink:          #F472B6;
   --color-pink-light:    rgba(244, 114, 182, 0.1);
+  /* En mode sombre, le badge garde le rose clair existant (fond translucide
+     sombre) : pas de régression visuelle. */
+  --color-pink-dark:     #F472B6;
   --color-purple:        #A78BFA;
   --color-purple-light:  rgba(167, 139, 250, 0.1);
   --color-teal:          #2DD4BF;
@@ -158,6 +171,7 @@
   --color-danger-light:  var(--color-danger-light);
   --color-pink:          var(--color-pink);
   --color-pink-light:    var(--color-pink-light);
+  --color-pink-dark:     var(--color-pink-dark);
   --color-yellow:        var(--color-yellow);
   --color-yellow-light:  var(--color-yellow-light);
   --color-purple:        var(--color-purple);

@@ -2,6 +2,13 @@
   "name": "saas-provisionning",
   "version": "0.1.0",
   "private": true,
+  "browserslist": [
+    "chrome >= 109",
+    "edge >= 109",
+    "firefox >= 109",
+    "safari >= 16",
+    "not dead"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
