@@ -183,11 +183,19 @@ const ICONS: Record<string, ReactNode> = {
       <path d="M2 12h20" />
     </>
   ),
-  // Croix → fonctionnalité non incluse (grille tarifaire).
+  // Croix → fonctionnalité non incluse (grille tarifaire) / fermeture du menu.
   x: (
     <>
       <path d="M18 6 6 18" />
       <path d="m6 6 12 12" />
+    </>
+  ),
+  // Trois barres → bouton d'ouverture du menu mobile (hamburger).
+  menu: (
+    <>
+      <line x1="4" x2="20" y1="6" y2="6" />
+      <line x1="4" x2="20" y1="12" y2="12" />
+      <line x1="4" x2="20" y1="18" y2="18" />
     </>
   ),
 };
