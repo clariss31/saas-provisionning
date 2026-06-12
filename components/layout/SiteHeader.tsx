@@ -48,8 +48,11 @@ export default function SiteHeader() {
   }, []);
 
   // À chaque navigation, on referme le tiroir (sinon il resterait ouvert
-  // par-dessus la nouvelle page).
+  // par-dessus la nouvelle page). Reset d'état volontaire suite à un changement
+  // de route (on synchronise l'UI avec le système de navigation) — pas une
+  // cascade de rendus problématique, d'où le disable ciblé.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMenuOpen(false);
   }, [pathname]);
 
