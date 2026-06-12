@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Icon from "@/components/ui/Icon";
+import { isValidJob } from "@/lib/instances/jobs";
 
 type Props = {
   /** Raison sociale, affichée dans le message de succès. */
@@ -11,6 +12,11 @@ type Props = {
   accessUrl: string;
   /** Réf de l'instance à suivre — clé du polling de statut. */
   instanceRef: string;
+  /**
+   * Métier sélectionné (`?job=`), transmis depuis le tunnel. Permet, en cas de
+   * réf introuvable, de proposer la reprise de l'inscription pré-paramétrée.
+   */
+  job?: string | null;
 };
 
 /** Sous-étapes de déploiement affichées dans le stepper vertical (SPEC page 6). */
@@ -46,6 +52,7 @@ export default function ProvisioningDashboard({
   companyName,
   accessUrl,
   instanceRef,
+  job = null,
 }: Props) {
   const [status, setStatus] = useState<ProvisioningStatus | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -117,7 +124,7 @@ export default function ProvisioningDashboard({
   }
 
   if (notFound) {
-    return <ProvisioningNotFound />;
+    return <ProvisioningNotFound job={job} />;
   }
 
   return (
@@ -296,8 +303,22 @@ function StepCircle({ status, success }: { status: StepStatus; success: boolean 
   );
 }
 
-/** Écran affiché si la réf de suivi est inconnue (ex. serveur redémarré en mock). */
-function ProvisioningNotFound() {
+/**
+ * Écran affiché si la réf de suivi est inconnue (ex. serveur redémarré en mock).
+ *
+ * Le lien de reprise dépend du contexte : un métier devant **obligatoirement**
+ * être sélectionné, on ne renvoie jamais vers `/inscription` nu. Si le métier
+ * est connu, on rouvre le tunnel pré-paramétré ; sinon on renvoie au catalogue
+ * pour qu'un métier soit choisi.
+ */
+function ProvisioningNotFound({ job }: { job?: string | null }) {
+  const resumeHref = isValidJob(job)
+    ? `/inscription?job=${encodeURIComponent(job)}`
+    : "/metiers";
+  const resumeLabel = isValidJob(job)
+    ? "Reprendre mon inscription"
+    : "Choisir mon métier";
+
   return (
     <div className="flex flex-col items-center rounded-3xl border border-border-light bg-surface p-10 text-center shadow-card md:p-14">
       <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-danger-light text-danger">
@@ -309,10 +330,10 @@ function ProvisioningNotFound() {
         créer votre espace.
       </p>
       <Link
-        href="/inscription"
+        href={resumeHref}
         className="mt-6 text-[13px] font-medium text-accent-dark hover:underline"
       >
-        Retour à l&apos;inscription
+        {resumeLabel}
       </Link>
     </div>
   );
