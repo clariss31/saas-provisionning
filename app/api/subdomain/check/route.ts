@@ -34,11 +34,22 @@ export async function GET(request: NextRequest): Promise<NextResponse<SubdomainC
     return NextResponse.json({ subdomain, available: false, reason: formatError });
   }
 
-  // 2) Unicité auprès du Dolibarr Maître (mock pour l'instant).
-  const available = await isSubdomainAvailable(subdomain);
-  return NextResponse.json({
-    subdomain,
-    available,
-    reason: available ? null : "Ce sous-domaine est déjà pris.",
-  });
+  // 2) Unicité auprès du Dolibarr Maître.
+  try {
+    const available = await isSubdomainAvailable(subdomain);
+    return NextResponse.json({
+      subdomain,
+      available,
+      reason: available ? null : "Ce sous-domaine est déjà pris.",
+    });
+  } catch (error) {
+    // Échec de l'appel au Maître : on logge l'erreur réelle côté serveur (terminal)
+    // pour diagnostic, et on renvoie un message neutre plutôt qu'un 500 brut.
+    console.error("[subdomain/check] échec de la vérification au Maître :", error);
+    return NextResponse.json({
+      subdomain,
+      available: false,
+      reason: "Vérification impossible, réessayez.",
+    });
+  }
 }
