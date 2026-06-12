@@ -93,13 +93,17 @@ export async function dolibarrFetch<T = unknown>(
   });
 
   if (!res.ok) {
-    // Dolibarr renvoie usuellement `{ error: { code, message } }` en JSON.
+    // Dolibarr renvoie usuellement `{ error: { code, message } }` en JSON, mais une
+    // couche en amont (serveur web, WAF OVH, fatal PHP) peut renvoyer du HTML/texte.
+    // On lit le corps BRUT pour exposer la vraie raison dans le message d'erreur.
+    const bodyText = await res.text().catch(() => "");
     let detail = "";
     try {
-      const data = (await res.json()) as { error?: { message?: string } };
+      const data = JSON.parse(bodyText) as { error?: { message?: string } };
       detail = data?.error?.message ?? "";
     } catch {
-      // Corps non-JSON : on ignore le détail.
+      // Corps non-JSON : on garde un extrait lisible du texte brut.
+      detail = bodyText.replace(/\s+/g, " ").trim().slice(0, 300);
     }
     throw new DolibarrError(
       `Appel Dolibarr en échec (HTTP ${res.status})${detail ? ` : ${detail}` : ""}.`,
