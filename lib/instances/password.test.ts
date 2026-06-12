@@ -1,4 +1,8 @@
-import { scorePassword, PASSWORD_MIN_LENGTH } from "./password";
+import {
+  scorePassword,
+  isPasswordAcceptable,
+  PASSWORD_MIN_LENGTH,
+} from "./password";
 
 /** Tests unitaires de la jauge de robustesse du mot de passe. */
 describe("scorePassword", () => {
@@ -26,5 +30,20 @@ describe("scorePassword", () => {
 
   it("expose une longueur minimale cohérente", () => {
     expect(scorePassword("a".repeat(PASSWORD_MIN_LENGTH - 1)).acceptable).toBe(false);
+  });
+});
+
+/** Politique de mot de passe revérifiée côté serveur (Option B). */
+describe("isPasswordAcceptable", () => {
+  it("refuse un mot de passe trop court", () => {
+    expect(isPasswordAcceptable("Aa1!")).toBe(false);
+  });
+
+  it("accepte un mot de passe conforme", () => {
+    expect(isPasswordAcceptable("motdepasse1")).toBe(true);
+  });
+
+  it("refuse un mot de passe excessivement long (garde-fou anti-abus)", () => {
+    expect(isPasswordAcceptable("A1" + "a".repeat(200))).toBe(false);
   });
 });

@@ -13,11 +13,7 @@ import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
 import SubdomainField, { type SubdomainStatus } from "./SubdomainField";
 import ModernField, { MODERN_CONTROL } from "./ModernField";
-import {
-  scorePassword,
-  hashPassword,
-  PASSWORD_MIN_LENGTH,
-} from "@/lib/instances/password";
+import { scorePassword, PASSWORD_MIN_LENGTH } from "@/lib/instances/password";
 
 type Props = {
   /** Domaine racine des instances (fourni par le serveur, ex. « pichinov.fr »). */
@@ -119,9 +115,9 @@ export default function InscriptionForm({ domain, job, billing }: Props) {
             setSubmitting(true);
             setSubmitError(null);
             try {
-              // Le mot de passe est haché avant l'envoi : le clair ne quitte
-              // jamais le navigateur.
-              const passwordHash = await hashPassword(password);
+              // Option B : le mot de passe est transmis en clair (sur TLS) car
+              // Sell Your SaaS doit poser ce mot de passe exact sur l'admin de
+              // l'instance. Il n'est jamais journalisé ni stocké côté serveur.
               const res = await fetch("/api/inscription", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -131,7 +127,7 @@ export default function InscriptionForm({ domain, job, billing }: Props) {
                   legalStatus,
                   vat,
                   email,
-                  passwordHash,
+                  password,
                   job,
                   billing,
                 }),

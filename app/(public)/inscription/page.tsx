@@ -27,7 +27,8 @@ export default async function InscriptionPage({
   searchParams: Promise<{ job?: string; billing?: string }>;
 }) {
   const { job, billing } = await searchParams;
-  const domain = process.env.INSTANCE_DOMAIN ?? "pichinov.fr";
+  // Schéma de sous-domaine des instances Sell Your SaaS (ex. with1.pichinov.fr).
+  const domain = process.env.INSTANCE_DOMAIN ?? "with1.pichinov.fr";
 
   return (
     // Fond lavande pleine hauteur, tunnel centré (cf. DESIGN — écran formulaire,
