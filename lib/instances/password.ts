@@ -1,10 +1,12 @@
 /**
  * Évaluation de la robustesse d'un mot de passe (jauge visuelle du tunnel
- * d'inscription). Module **pur** et testable.
+ * d'inscription). Module **pur** et testable, utilisable côté client ET serveur.
  *
- * NB : ce score n'est qu'une aide à la saisie côté client ; la politique de mot
- * de passe réelle (longueur minimale, hachage) est appliquée côté serveur lors
- * de la création de l'instance.
+ * NB : ce score est à la fois l'aide à la saisie côté client et la **politique
+ * de mot de passe** revérifiée côté serveur (`/api/inscription`). Le mot de passe
+ * transite **en clair sur TLS** (Option B) car Sell Your SaaS doit pouvoir poser
+ * ce mot de passe exact sur le compte admin de l'instance — il n'est jamais
+ * journalisé ni persisté au-delà de la requête.
  */
 
 /** Longueur minimale acceptée pour un mot de passe admin. */
@@ -51,19 +53,16 @@ export function scorePassword(password: string): PasswordStrength {
   return { score, label: LABELS[score], acceptable };
 }
 
+/** Longueur maximale acceptée (garde-fou anti-abus, pas une contrainte métier). */
+export const PASSWORD_MAX_LENGTH = 128;
+
 /**
- * Empreinte SHA-256 (hexadécimale) d'un mot de passe, calculée côté client
- * (Web Crypto) **avant transmission** : le mot de passe en clair ne quitte
- * jamais le navigateur.
- *
- * NB : en provisioning réel (Lot 7), la pose du mot de passe admin sur
- * l'instance sera gérée côté serveur par Sell Your SaaS ; ce hash sert à éviter
- * tout transit en clair pendant la phase mock.
+ * Politique de mot de passe appliquée **côté serveur** avant provisioning.
+ * Renvoie `true` si le mot de passe est conforme (longueur dans les bornes et
+ * robustesse « acceptable » au sens de {@link scorePassword}).
  */
-export async function hashPassword(password: string): Promise<string> {
-  const data = new TextEncoder().encode(password);
-  const digest = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+export function isPasswordAcceptable(password: string): boolean {
+  return (
+    password.length <= PASSWORD_MAX_LENGTH && scorePassword(password).acceptable
+  );
 }

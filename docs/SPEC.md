@@ -64,12 +64,14 @@ pour activer uniquement les modules Dolibarr nécessaires.
   commerciales (Devis auto obligatoire), Stocks (Pièces de rechange),
   Factures.
 
-#### Créateur / Artisan (petite entreprise de fabrication et vente)
+#### Artisan BTP (bâtiment : maçon, plombier, électricien, etc.)
 
-- **Besoins :** suivi de la transformation de matières premières en produits
-  finis et vente multi-canaux (boutique, salons).
-- **Modules Dolibarr activés d'office :** Produits & Stocks, BOM
-  (Nomenclature / Composition des produits), Factures.
+- **Besoins :** chiffrage de chantiers (devis mêlant matériaux et
+  main-d'œuvre), planification et suivi des interventions sur site, puis
+  facturation.
+- **Modules Dolibarr activés d'office :** Propositions commerciales (Devis),
+  Produits & Services, Fiches d'intervention (Interventions), Projets
+  (suivi par chantier), Factures.
 
 ### 1.4. Grille tarifaire unifiée
 

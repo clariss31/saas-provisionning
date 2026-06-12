@@ -30,7 +30,8 @@ export type CreateInstanceInput = {
   /** E-mail de l'admin (login + contact). */
   email: string;
   /**
-   * Mot de passe admin. Utilisé puis jeté côté serveur : ne JAMAIS le
+   * Mot de passe admin **en clair** (Option B). Transmis à Sell Your SaaS pour
+   * poser le mot de passe exact de l'admin de l'instance. Ne JAMAIS le
    * journaliser ni le renvoyer au client.
    */
   password: string;
@@ -38,8 +39,9 @@ export type CreateInstanceInput = {
   legalStatus?: string;
   /** Assujettissement à la TVA. */
   vatLiable?: boolean;
-  /** Contexte commercial (non déterminant tant que l'instance est unique). */
+  /** Métier choisi (`?job=`) → sélectionne le Service SYS (cf. {@link serviceForJob}). */
   job?: string;
+  /** Engagement choisi (`?billing=`) — contexte commercial. */
   billing?: string;
 };
 
@@ -71,8 +73,33 @@ export const PROVISIONING_STEPS = 4;
 
 /** Construit l'URL publique d'une instance à partir de son sous-domaine. */
 export function instanceUrl(subdomain: string): string {
-  const domain = process.env.INSTANCE_DOMAIN ?? "pichinov.fr";
+  // Schéma de sous-domaine des instances Sell Your SaaS (ex. with1.pichinov.fr).
+  const domain = process.env.INSTANCE_DOMAIN ?? "with1.pichinov.fr";
   return `https://${subdomain}.${domain}`;
+}
+
+// ---------------------------------------------------------------------------
+// Correspondance métier → Service Sell Your SaaS
+// ---------------------------------------------------------------------------
+
+/**
+ * Slug de métier (front, `?job=`) → réf du **Service SYS** (type Application) qui
+ * porte le Package = le dump = les modules de l'instance (cf. PLAN « Guideline §A »).
+ * ⚠️ Le slug front `artisan` correspond au service `ArtisanBTP`.
+ */
+export const JOB_TO_SERVICE: Record<string, string> = {
+  fleuriste: "Fleuriste",
+  freelance: "Freelance",
+  garagiste: "Garagiste",
+  artisan: "ArtisanBTP",
+};
+
+/** Réf de service utilisée par défaut si le métier est absent/inconnu. */
+export const DEFAULT_SERVICE_REF = "Fleuriste";
+
+/** Réf du Service SYS pour un slug de métier (défaut : {@link DEFAULT_SERVICE_REF}). */
+export function serviceForJob(job: string | undefined): string {
+  return (job ? JOB_TO_SERVICE[job] : undefined) ?? DEFAULT_SERVICE_REF;
 }
 
 // ---------------------------------------------------------------------------
@@ -225,27 +252,35 @@ function mockClaimReadyNotification(ref: string): ReadyNotification | null {
 }
 
 // ---------------------------------------------------------------------------
-// Implémentation LIVE (vrais appels REST — mode `live`)
+// Implémentation LIVE (mode `live`)
 // ---------------------------------------------------------------------------
 //
-// ⚠️ À CONFIRMER lors du branchement réel (Lot 7) : le schéma exact exposé par
-// Sell Your SaaS (ressource d'instance dédiée ? champs du contrat portant le
-// sous-domaine et les identifiants admin/DB ?). Les points à valider sont
-// marqués `TODO(Lot 7)`. Tant que ce n'est pas confirmé, garder
-// `DOLIBARR_MODE=mock`. Le sous-domaine est un slug `[a-z0-9-]` (cf. couche
-// `lib/instances/subdomain.ts`) : son interpolation dans un `sqlfilters` est
-// donc sûre (aucun caractère d'échappement possible).
+// Recon (cf. PLAN « Guideline §C/§D ») : Sell Your SaaS n'a PAS d'endpoint REST
+// de déploiement. Le déploiement est déclenché par le portail `myaccount` —
+// `register_instance.php` — qui appelle en interne `sellyoursaasRemoteAction('deployall')`.
+//  → `liveCreateInstance` POSTe donc le formulaire vers `register_instance.php`
+//    (SYS y crée tiers + contrat + extrafields + identifiants Unix/DB + déploie).
+//  → Le SUIVI et l'UNICITÉ se lisent via l'API REST (`/contracts`, en-tête DOLAPIKEY).
+//
+// ⚠️ `TODO(live)` = à valider une fois le serveur de déploiement (VPS) en place :
+// token anti-abus/CSRF de `register_instance.php`, format exact de sa réponse
+// (réf du contrat), et `tldid`. Tant que `SELLYOURSAAS_REGISTER_URL` est absente,
+// le mode live échoue explicitement (garder `DOLIBARR_MODE=mock`).
+// NB sécurité : `subdomain` est un slug `[a-z0-9-]` (cf. `lib/instances/subdomain.ts`),
+// son interpolation dans un `sqlfilters` est donc sûre.
 
+/**
+ * Unicité du sous-domaine : SYS pose `ref_customer = <sous-domaine>.<tld>` sur le
+ * contrat ; on cherche donc un contrat dont `ref_customer` commence par le slug.
+ */
 async function liveIsSubdomainAvailable(subdomain: string): Promise<boolean> {
   try {
-    // TODO(Lot 7): si SYS expose une ressource d'instances, l'interroger plutôt
-    // que les tiers. Ici on s'appuie sur l'unicité du code client = sous-domaine.
-    const results = await dolibarrFetch<unknown[]>("thirdparties", {
-      query: { sqlfilters: `(t.code_client:=:'${subdomain}')`, limit: 1 },
+    const results = await dolibarrFetch<unknown[]>("contracts", {
+      query: { sqlfilters: `(t.ref_customer:like:'${subdomain}.%')`, limit: 1 },
     });
     return !Array.isArray(results) || results.length === 0;
   } catch (error) {
-    // Dolibarr répond 404 quand aucun tiers ne correspond → disponible.
+    // 404 = aucun contrat correspondant → sous-domaine disponible.
     if (error instanceof DolibarrError && error.status === 404) return true;
     throw error;
   }
@@ -254,54 +289,76 @@ async function liveIsSubdomainAvailable(subdomain: string): Promise<boolean> {
 async function liveCreateInstance(
   input: CreateInstanceInput,
 ): Promise<CreateInstanceResult> {
-  // 1) Créer le tiers (client). L'API renvoie l'identifiant créé.
-  const thirdpartyId = await dolibarrFetch<number>("thirdparties", {
-    method: "POST",
-    body: {
-      name: input.companyName,
-      email: input.email,
-      client: 1,
-      code_client: input.subdomain,
-    },
-  });
+  const registerUrl = process.env.SELLYOURSAAS_REGISTER_URL;
+  if (!registerUrl) {
+    throw new DolibarrError(
+      "SELLYOURSAAS_REGISTER_URL non configurée : provisioning live indisponible.",
+    );
+  }
 
-  // 2) Créer le contrat porteur de l'instance. Sa création (statut initial géré
-  //    par SYS) déclenche le clonage par le cron Sell Your SaaS.
-  // TODO(Lot 7): renseigner ici les champs SYS attendus (nom d'instance =
-  //   sous-domaine, login + e-mail admin, identifiants DB générés) selon le
-  //   package configuré sur le Maître.
-  const contractId = await dolibarrFetch<number>("contracts", {
-    method: "POST",
-    body: {
-      socid: thirdpartyId,
-      note_private: `instance=${input.subdomain};admin=${input.email}`,
-    },
-  });
-
-  // Récupère la référence lisible du contrat pour l'URL de suivi.
-  const contract = await dolibarrFetch<{ ref?: string }>(
-    `contracts/${contractId}`,
+  // Le métier choisi → le Service (Application) qui porte le Package = les modules.
+  const serviceRef = serviceForJob(input.job);
+  // `register_instance.php` attend l'ID produit du service : on le résout par sa réf.
+  const products = await dolibarrFetch<Array<{ id: number; ref: string }>>(
+    "products",
+    { query: { sqlfilters: `(t.ref:=:'${serviceRef}')`, limit: 1 } },
   );
+  const service = Array.isArray(products) ? products[0] : undefined;
+  if (!service) {
+    throw new DolibarrError(
+      `Service SYS introuvable pour le métier « ${serviceRef} ».`,
+    );
+  }
 
-  return {
-    ref: contract?.ref ?? String(contractId),
-    subdomain: input.subdomain,
-    url: instanceUrl(input.subdomain),
-  };
+  // Domaine d'instance (ex. with1.pichinov.fr) → SYS construit `ref_customer`.
+  const tld = process.env.INSTANCE_DOMAIN ?? "with1.pichinov.fr";
+
+  // Champs du formulaire public (cf. register.php). Mot de passe EN CLAIR (Option B).
+  // TODO(live): récupérer d'abord le token anti-abus via GET register.php et l'ajouter.
+  const form = new URLSearchParams({
+    username: input.email,
+    orgName: input.companyName,
+    password: input.password,
+    password2: input.password,
+    sldAndSubdomain: input.subdomain,
+    tldid: tld,
+    service: String(service.id),
+    productref: serviceRef,
+    package: serviceRef, // le package partage la réf du service métier
+    plan: serviceRef,
+  });
+
+  const res = await fetch(registerUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: form.toString(),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new DolibarrError(
+      `Échec du provisioning (register_instance) : HTTP ${res.status}.`,
+      res.status,
+    );
+  }
+
+  // TODO(live): `register_instance.php` répond en HTML ; valider son format réel
+  //   pour extraire la réf du contrat. En attendant, on suit par `ref_customer`.
+  const ref = `${input.subdomain}.${tld}`;
+  return { ref, subdomain: input.subdomain, url: instanceUrl(input.subdomain) };
 }
 
 async function liveGetInstanceStatus(
   ref: string,
 ): Promise<InstanceStatus | null> {
-  let contract:
-    | { id: number; statut?: number; note_private?: string }
-    | undefined;
-
+  // Suivi : extrafield `options_deployment_status` du contrat (`processing` → `done`).
+  type LiveContract = {
+    ref_customer?: string;
+    array_options?: { options_deployment_status?: string };
+  };
+  let contract: LiveContract | undefined;
   try {
-    const list = await dolibarrFetch<
-      Array<{ id: number; statut?: number; note_private?: string }>
-    >("contracts", {
-      query: { sqlfilters: `(t.ref:=:'${ref}')`, limit: 1 },
+    const list = await dolibarrFetch<LiveContract[]>("contracts", {
+      query: { sqlfilters: `(t.ref_customer:=:'${ref}')`, limit: 1 },
     });
     contract = Array.isArray(list) ? list[0] : undefined;
   } catch (error) {
@@ -310,27 +367,23 @@ async function liveGetInstanceStatus(
   }
   if (!contract) return null;
 
-  // Récupère le sous-domaine stocké dans la note du contrat (cf. création).
-  const subdomain =
-    contract.note_private?.match(/instance=([a-z0-9-]+)/)?.[1] ?? ref;
-
-  // TODO(Lot 7): mapper le statut SYS réel (DEPLOY_IN_PROGRESS → DEPLOYED) vers
-  //   `state`/`step`. En l'absence de granularité, on reste prudent : un contrat
-  //   actif (statut Dolibarr = 1) est considéré déployé.
-  const deployed = contract.statut === 1;
+  const subdomain = contract.ref_customer?.split(".")[0] ?? ref;
+  const status = contract.array_options?.options_deployment_status;
+  const state: InstanceState =
+    status === "done" ? "deployed" : status === "error" ? "error" : "deploying";
 
   return {
     ref,
     subdomain,
     url: instanceUrl(subdomain),
-    state: deployed ? "deployed" : "deploying",
-    step: deployed ? PROVISIONING_STEPS : 1,
+    state,
+    // Granularité indicative pour l'UI : 4 quand prêt, sinon « en cours ».
+    step: state === "deployed" ? PROVISIONING_STEPS : 1,
   };
 }
 
-// TODO(Lot 7): implémenter la notification « prête » en live — lire le contrat,
-//   vérifier qu'il est DÉPLOYÉ, et utiliser un champ (extrafield) pour garantir
-//   l'idempotence (un seul e-mail). En attendant, on ne notifie pas en live.
+// TODO(live): notification « prête » — lire le contrat, vérifier
+//   options_deployment_status='done', et garantir l'idempotence via un extrafield.
 async function liveClaimReadyNotification(
   _ref: string,
 ): Promise<ReadyNotification | null> {
