@@ -71,8 +71,8 @@ export default function NotFound() {
           </h1>
 
           <p className="mt-4 max-w-md text-[14px] leading-6 text-soft">
-            La page que vous cherchez n'existe pas ou a été déplacée. Pas
-            d'inquiétude : reprenons depuis le début.
+            La page que vous cherchez n&apos;existe pas ou a été déplacée. Pas
+            d&apos;inquiétude&nbsp;: reprenons depuis le début.
           </p>
 
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
