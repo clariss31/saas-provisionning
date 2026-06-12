@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import InscriptionForm from "@/components/inscription/InscriptionForm";
+import { isValidJob } from "@/lib/instances/jobs";
 
 /**
  * Métadonnées propres à la page « Inscription » (SEO).
@@ -27,6 +29,15 @@ export default async function InscriptionPage({
   searchParams: Promise<{ job?: string; billing?: string }>;
 }) {
   const { job, billing } = await searchParams;
+
+  // Un métier doit obligatoirement avoir été sélectionné au catalogue : sans
+  // `?job=` valide, le tunnel n'a aucun template à configurer. On renvoie alors
+  // vers le catalogue (redirection serveur, sans rendu intermédiaire). Après
+  // cette garde, `job` est garanti être un slug de métier connu.
+  if (!isValidJob(job)) {
+    redirect("/metiers");
+  }
+
   // Schéma de sous-domaine des instances Sell Your SaaS (ex. with1.pichinov.fr).
   const domain = process.env.INSTANCE_DOMAIN ?? "with1.pichinov.fr";
 
@@ -41,7 +52,7 @@ export default async function InscriptionPage({
 
         <InscriptionForm
           domain={domain}
-          job={job ?? null}
+          job={job}
           billing={billing ?? null}
         />
       </div>
