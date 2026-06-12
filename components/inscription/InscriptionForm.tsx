@@ -145,8 +145,13 @@ export default function InscriptionForm({ domain, job, billing }: Props) {
               if (!data?.ref) {
                 throw new Error("Réponse inattendue du serveur.");
               }
+              // On transmet aussi le métier : si la réf de suivi devient
+              // introuvable, l'écran d'erreur peut proposer de reprendre
+              // l'inscription avec le bon template pré-sélectionné.
               router.push(
-                `/provisioning/${data.ref}?company=${encodeURIComponent(companyName.trim())}`,
+                `/provisioning/${data.ref}?company=${encodeURIComponent(companyName.trim())}${
+                  job ? `&job=${encodeURIComponent(job)}` : ""
+                }`,
               );
             } catch (err) {
               setSubmitError(

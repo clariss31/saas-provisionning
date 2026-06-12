@@ -19,10 +19,10 @@ export default async function ProvisioningPage({
   searchParams,
 }: {
   params: Promise<{ ref: string }>;
-  searchParams: Promise<{ company?: string }>;
+  searchParams: Promise<{ company?: string; job?: string }>;
 }) {
   const { ref } = await params;
-  const { company } = await searchParams;
+  const { company, job } = await searchParams;
   // URL d'accès à l'espace (lue côté serveur, hors code versionné).
   const accessUrl = process.env.MASTER_INSTANCE_URL ?? "#";
 
@@ -33,6 +33,7 @@ export default async function ProvisioningPage({
           instanceRef={ref}
           companyName={company?.trim() || "votre entreprise"}
           accessUrl={accessUrl}
+          job={job ?? null}
         />
       </div>
     </div>
