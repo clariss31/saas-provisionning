@@ -250,6 +250,25 @@ La vraie logique est dans **`myaccount/register_instance.php`** (le formulaire `
    - **Option B** : envoyer le mot de passe **en clair** (retirer le hash SHA-256), valider par politique de mdp.
    - `liveCreateInstance` = **POST vers `register_instance.php`** (cf. §C/§D — **pas** l'API contrat REST) ; `liveGetInstanceStatus` = `GET /contracts/{id}` → `options_deployment_status` (`processing`→`done`) ; `liveIsSubdomainAvailable` = check `ref_customer`.
 
+### F. Tester le lien app→Master SANS le VPS (mode `rest-createonly`)
+Pour vérifier **dès maintenant** que le tunnel crée bien le client/contrat dans le Master (sans déploiement) :
+1. Générer un **DOLAPIKEY** sur le Master (utilisateur habilité Tiers + Contrats + Produits).
+2. `.env.local` : `DOLIBARR_MODE=live`, `DOLIBARR_API_URL=https://kaleido.pichinov.fr/api/index.php`,
+   `DOLIBARR_API_KEY=<clé>`, **`SELLYOURSAAS_PROVISION_MODE=rest-createonly`**.
+3. `npm run dev` → remplir le tunnel → un **tiers + contrat « [TEST Provi] »** apparaissent dans le Master
+   (le tableau de bord reste « en cours » : normal, aucun déploiement n'est déclenché).
+4. **Nettoyer** ensuite : supprimer les tiers/contrats « [TEST Provi] » dans le Master.
+Code : `liveCreateInstanceRestOnly` dans [lib/dolibarr/instances.ts](../lib/dolibarr/instances.ts).
+
+> 🧪 **Résultat du test (12/06/2026)** : câblage front→Master **validé en live** — lecture (GET) ET écriture (POST)
+> fonctionnent **sur le mutualisé**. Le « 503 Varnish » initial venait en fait d'un **champ manquant** : le Master
+> impose un code client (module `mod_codeclient_monkey`, log `ErrorCustomerCodeRequired`) → corrigé en envoyant
+> **`code_client: -1`** (génération auto, comme `register_instance.php`). Donc le **back-office du Master (CRUD via
+> API) tourne très bien sur le mutualisé Performance**.
+> ⚠️ Ce qui reste **impossible sur le mutualisé** : le **déploiement** d'instances (comptes Unix, vhosts Apache,
+> jails, `exec`/`shell_exec`) → **le VPS Linux root reste indispensable pour le serveur de déploiement** (et pour
+> l'orchestration SYS qui utilise ces fonctions système).
+
 ---
 
 ## Runbook SYS — créer un package métier

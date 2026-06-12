@@ -83,26 +83,36 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (formatError) {
     return NextResponse.json({ error: formatError }, { status: 400 });
   }
-  if (!(await isSubdomainAvailable(subdomain))) {
-    return NextResponse.json({ error: "Ce sous-domaine est déjà pris." }, { status: 409 });
+  try {
+    if (!(await isSubdomainAvailable(subdomain))) {
+      return NextResponse.json({ error: "Ce sous-domaine est déjà pris." }, { status: 409 });
+    }
+
+    // --- Création de l'instance (mock tant que DOLIBARR_MODE !== "live") -----
+    const instance = await createInstance({
+      companyName,
+      subdomain,
+      managerName,
+      email,
+      password,
+      legalStatus,
+      vatLiable: vat === "oui",
+      job,
+      billing,
+    });
+
+    return NextResponse.json({
+      ref: instance.ref,
+      subdomain: instance.subdomain,
+      url: instance.url,
+    });
+  } catch (error) {
+    // On logge l'erreur réelle côté serveur (terminal) pour diagnostic ; le mot
+    // de passe n'apparaît jamais dans ces objets d'erreur.
+    console.error("[inscription] échec de la création de l'instance :", error);
+    return NextResponse.json(
+      { error: "La création a échoué. Réessayez." },
+      { status: 502 },
+    );
   }
-
-  // --- Création de l'instance (mock tant que DOLIBARR_MODE !== "live") -------
-  const instance = await createInstance({
-    companyName,
-    subdomain,
-    managerName,
-    email,
-    password,
-    legalStatus,
-    vatLiable: vat === "oui",
-    job,
-    billing,
-  });
-
-  return NextResponse.json({
-    ref: instance.ref,
-    subdomain: instance.subdomain,
-    url: instance.url,
-  });
 }
