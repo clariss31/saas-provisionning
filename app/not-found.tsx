@@ -77,7 +77,7 @@ export default function NotFound() {
 
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
             <ButtonLink href="/" size="lg" withArrow>
-              Retour à l'accueil
+              Retour à l&apos;accueil
             </ButtonLink>
             <ButtonLink href="/contact" variant="soft" size="lg">
               Nous contacter
