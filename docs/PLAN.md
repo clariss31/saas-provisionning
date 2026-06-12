@@ -14,13 +14,15 @@ qu'au back-office). Le skill `sellyoursaas` est installé localement (réf. opé
 - SSH Master : `ssh ridinteadu-fabrice@ssh02.cluster128.gra.hosting.ovh.net` (offre Performance, SSH activé)
 - DATA_ROOT : `/home/ridinteadu/kaleido/dolibarr/documents`
 - Image déployable : `…/documents/sellyoursaas/git/dolibarr_24.0` (Dolibarr 24.0-beta + **Kaleido** dans `htdocs/custom/kaleido`)
-- Dump Fleuriste : `…/documents/sellyoursaas/packages/Fleuriste/fleuriste.sql` (286 tables, admin `pass='admin'`)
+- Dump Fleuriste : `…/documents/sellyoursaas/packages/Fleuriste/fleuriste.sql` (Kaleido + **Produits/Stocks/TakePOS/Factures** activés, admin `pass='admin'`)
 - Install de référence (sert à produire les dumps) : `https://ref.pichinov.fr` → dossier `~/kaleido/reference`,
   base MySQL **`ridinteaduprovi`** / hôte **`ridinteaduprovi.mysql.db`** / admin Dolibarr `admin` / `adminadmin`.
 
-**✅ Fait :** skill `sellyoursaas` · image+Kaleido · **package Fleuriste** (cf. valeurs des champs dans l'historique
-+ structure dans le **Runbook** plus bas) · **service Application Fleuriste** (type *Application*, relié au package,
-**30 j gratuits**, en vente, prix 0, SSH/DB=Non).
+**✅ Fait :** skill `sellyoursaas` · image+Kaleido · **les 4 packages + services** construits —
+**Fleuriste · Freelance · Garagiste · ArtisanBTP** (chacun : dump configuré avec ses modules métier + Kaleido,
+package, service *Application* relié, 30 j gratuits, prix 0). Procédure dans le **Runbook**, modules par métier
+dans le **SPEC §1.3**, et correspondance métier→service dans la **Guideline** (toutes deux plus bas).
+**Recon Lot 7 faite** (API du Master analysée via [docs/dolibarr-swagger.json](dolibarr-swagger.json) → cf. Guideline).
 
 **⬜ Dès que le VPS Linux est là :**
 1. Nouvelle **IP** → mettre à jour `MAIN_EXTERNAL_SMTP_CLIENT_IP_ADDRESS` du package (remplacer `217.182.252.69`)
@@ -29,9 +31,12 @@ qu'au back-office). Le skill `sellyoursaas` est installé localement (réf. opé
    sur le VPS** (le mutualisé ne peut pas exporter le NFS attendu par SYS → archi mono-serveur).
 3. **Câbler le mode `live`** de l'app Next.js (Lot 8).
 
-**🟢 Avançable SANS le VPS (sur le Master + install de référence) :** définir les **modules Dolibarr à activer par
-métier** (4 templates du [SPEC](SPEC.md)) + construire les **3 autres packages** (freelance, garagiste, artisan BTP)
-via le **Runbook**. *(Non testable tant que le VPS n'est pas prêt, mais le contenu se prépare.)*
+**🟢 Lot 8 front — FAIT (12/06/2026) :** **Option B** (mot de passe en clair : tunnel + route +
+`isPasswordAcceptable`, hash SHA-256 retiré) ; **mapping `job → Service`** (`serviceForJob` dans
+[lib/dolibarr/instances.ts](../lib/dolibarr/instances.ts)) ; **`INSTANCE_DOMAIN=with1.pichinov.fr`** ;
+`liveCreateInstance` réécrit en **POST `register_instance.php`** (scaffold avec `TODO(live)` : token CSRF +
+parsing de la réponse — à valider une fois VPS/portail en place ; nouvelle env `SELLYOURSAAS_REGISTER_URL`).
+Mode `mock` reste le défaut. → Reste **bloqué sur le VPS** pour tout déploiement réel.
 
 ---
 
@@ -184,7 +189,70 @@ Détaillé dans le Lot 8. *(Option A — SYS génère le mot de passe — écart
 
 ---
 
-## Runbook SYS — créer un package métier (réalisé pour **Fleuriste**, le 11/06/2026)
+## Guideline — brancher le questionnaire au provisioning (recon Lot 7 + câblage Lot 8)
+
+> Recon faite à partir du swagger de l'API du Master : [docs/dolibarr-swagger.json](dolibarr-swagger.json).
+> Host API : **`https://kaleido.pichinov.fr/api/index.php`** — auth en-tête **`DOLAPIKEY`**.
+
+### A. Correspondance métier → Service → Package (le « configurer selon la réponse »)
+Les 4 packages + services sont construits (cf. Runbook). Le **slug `?job=`** du tunnel sélectionne le **Service** (qui pointe le **Package** = le dump = les modules) :
+
+| Slug front (`?job=`) | Service / Package SYS | Modules du dump |
+|---|---|---|
+| `fleuriste` | **Fleuriste** | Produits · Stocks · TakePOS · Factures · Kaleido |
+| `freelance` | **Freelance** | Tiers · Propositions · Factures · Projets · Kaleido |
+| `garagiste` | **Garagiste** | Produits · Propositions · Stocks · Factures · Kaleido |
+| `artisan` | **ArtisanBTP** | Produits · Propositions · Interventions (FICHEINTER) · Projets · Factures · Kaleido |
+
+⚠️ Le slug front **`artisan`** correspond au service/package **`ArtisanBTP`** → mapping explicite à coder.
+
+### B. Données du questionnaire → propriétés de l'instance
+- `companyName` → slug → **sous-domaine** → URL **`https://<slug>.with1.pichinov.fr`**
+- `job` → **Service** (table A) → modules/config de la Dolibarr déployée
+- `email` → admin de l'instance ; `password` → mdp admin (⚠️ **Option B : en CLAIR**, retirer le hash SHA-256 actuel)
+- `managerName` / `legalStatus` / `vat` → société & mentions (non déterminants pour le déploiement)
+
+### C. Flux de provisioning RÉEL (recon `register.php` → `register_instance.php`, 12/06/2026)
+L'**API SYS REST** (`/sellyoursaasapi/*`) ne gère que les **packages** + `setup`/`statistics` — **aucun endpoint « déployer »**.
+La vraie logique est dans **`myaccount/register_instance.php`** (le formulaire `register.php` poste dessus) :
+1. **Tiers** (Societe) : `fetch` par email, sinon **création** — `name=orgname`, `email`, `phone`, `client=2`, `tva_assuj=1`, `code_client=-1` (auto — **PAS** le sous-domaine).
+2. **Contrat** (Contrat) : `ref_customer = <sous-domaine>+<tld>`, `socid`, `date_contrat=now`, `create()`.
+3. **Ligne de service** : `contract->addline(..., productidtocreate = <id du Service métier>, ...)`.
+4. **Extrafields du contrat** (`array_options['options_*']`) = TOUTES les propriétés d'instance :
+   - `options_plan` = ref du Service · `options_deployment_status` = **`'processing'`** (= en cours)
+   - `options_deployment_host` = **IP du serveur de déploiement**
+   - `options_deployment_init_email` = **e-mail admin** · `options_deployment_init_adminpass` = **mot de passe admin EN CLAIR** ← confirme **Option B**
+   - `options_date_endfreeperiod` = fin d'essai
+   - OS **générés par SYS** : `options_hostname_os` / `options_username_os` / `options_password_os` / `options_sshaccesstype`
+   - DB **générés par SYS** : `options_hostname_db` / `options_database_db` / `options_port_db` / `options_username_db` / `options_password_db`
+   - divers : `options_timezone`, `options_deployment_ip`, `options_instance_unique_id`, `options_custom_url`…
+5. **Déclenchement déploiement (SYNCHRONE, timeout ~300 s)** :
+   `$sellyoursaasutils->sellyoursaasRemoteAction('deployall', $contract, 'admin', $email, $password, ...)`
+   → **méthode PHP** (appel HTTP interne vers l'agent du serveur de déploiement), **PAS un endpoint REST**.
+6. Fin OK : `options_deployment_status='done'` + `$contract->activateAll(...)`.
+- **Lien Service↔Package** : le Service (produit) porte l'extrafield **`options_package`** = ref du Package.
+
+### D. ⚠️ CONSÉQUENCE MAJEURE sur l'intégration (décision d'archi)
+**L'API REST seule NE déploie PAS** : `sellyoursaasRemoteAction('deployall')` est un appel PHP interne, sans équivalent REST. En plus, `register_instance.php` **génère lui-même** les identifiants Unix/DB (lourd à répliquer).
+→ **Approche recommandée : l'app Next.js POSTe vers `register_instance.php`** (en imitant le formulaire public), au lieu de répliquer via l'API contrat. SYS fait alors **tout** (tiers + contrat + extrafields + creds générés + déploiement). *(Ça révise l'hypothèse « API REST » du SPEC §3.1 — à acter.)*
+- **Champs à POSTer** (vus dans `register.php`) : `username` (e-mail), `orgName` (raison sociale), `password` + `password2` (**en clair**), `phone`, `country`, `sldAndSubdomain` (sous-domaine), `tldid`, `service` (id du Service métier), `productref`, `package` (ref du package), `plan`.
+- ⚠️ **À valider** : token CSRF / anti-abus de `register_instance.php` (il check VPN-proba, IP, etc.) → l'app devra d'abord **GET `register.php`** pour récupérer le token, puis POSTer. Et gérer la **requête synchrone longue** (~minutes) vs le dashboard en polling (ex. POST en arrière-plan + polling du statut).
+- **Alternative REST** (moins sûre) : créer contrat + extrafields via REST puis déclencher le déploiement autrement — possible **uniquement** s'il existe un **cron SYS** qui déploie les contrats `options_deployment_status='processing'` (à confirmer). Sinon, le contrat resterait « processing » sans jamais déployer.
+- **Suivi** (`liveGetInstanceStatus`) : `GET /contracts/{id}` → lire `options_deployment_status` (`processing`→`done`) → mapper sur les 4 étapes UI.
+- **Unicité sous-domaine** (`liveIsSubdomainAvailable`) : vérifier les contrats existants par `ref_customer` (= sous-domaine+tld).
+
+### E. À FAIRE AVANT que le questionnaire déploie pour de vrai
+1. 🔴 **Serveur de déploiement (VPS Linux)** — sans lui, le contrat se crée mais **rien ne déploie**.
+2. Côté SYS : régler le **sous-domaine d'instances = `with1.pichinov.fr`** (module + `/etc/sellyoursaas.conf` du serveur de déploiement) + **DNS wildcard** `*.with1.pichinov.fr`.
+3. **Accès Master** : URL `register_instance.php` du portail `myaccount` (provisioning **public**, pas de DOLAPIKEY) **+** un **DOLAPIKEY** de service pour les **lectures** (check unicité + suivi statut via `GET /contracts/{id}`). → `.env.local` : `DOLIBARR_API_URL=https://kaleido.pichinov.fr/api/index.php`, l'URL du portail `myaccount`, `DOLIBARR_MODE=live`.
+4. Côté app (Lot 8, partiellement faisable sans VPS) :
+   - Mapping `job → Service` (table A) ; `domain` du tunnel = `with1.pichinov.fr`.
+   - **Option B** : envoyer le mot de passe **en clair** (retirer le hash SHA-256), valider par politique de mdp.
+   - `liveCreateInstance` = **POST vers `register_instance.php`** (cf. §C/§D — **pas** l'API contrat REST) ; `liveGetInstanceStatus` = `GET /contracts/{id}` → `options_deployment_status` (`processing`→`done`) ; `liveIsSubdomainAvailable` = check `ref_customer`.
+
+---
+
+## Runbook SYS — créer un package métier
 
 > Procédure **reproductible** pour les autres métiers (garagiste, freelance…). Le Master SYS est sur
 > l'**hébergement OVH mutualisé Performance**.

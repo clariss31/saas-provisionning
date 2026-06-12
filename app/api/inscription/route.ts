@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { slugify, validateSubdomain } from "@/lib/instances/subdomain";
 import { isSubdomainAvailable, createInstance } from "@/lib/dolibarr/instances";
+import { isPasswordAcceptable } from "@/lib/instances/password";
 
 /**
  * `POST /api/inscription` — crée une instance à partir des données du tunnel
@@ -13,8 +14,9 @@ import { isSubdomainAvailable, createInstance } from "@/lib/dolibarr/instances";
  * L'e-mail « Votre ERP est prêt » n'est PAS envoyé ici : il part à la **fin du
  * provisioning** (cf. `POST /api/provisioning/notify`).
  *
- * Le mot de passe arrive déjà **haché** (SHA-256) : le clair ne quitte jamais
- * le navigateur (cf. `hashPassword`). On ne le journalise jamais.
+ * Le mot de passe arrive **en clair** (Option B, sur TLS) : Sell Your SaaS doit
+ * pouvoir poser ce mot de passe exact sur l'admin de l'instance. On le valide,
+ * on le transmet à la couche `lib/dolibarr`, mais on ne le **journalise jamais**.
  */
 
 /** Forme brute du corps reçu (tout est considéré hostile jusqu'à validation). */
@@ -24,7 +26,7 @@ type InscriptionBody = {
   legalStatus?: unknown;
   vat?: unknown;
   email?: unknown;
-  passwordHash?: unknown;
+  password?: unknown;
   job?: unknown;
   billing?: unknown;
 };
@@ -47,7 +49,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const companyName = asString(body.companyName).trim();
   const managerName = asString(body.managerName).trim();
   const email = asString(body.email).trim().toLowerCase();
-  const passwordHash = asString(body.passwordHash);
+  const password = asString(body.password);
   const legalStatus = asString(body.legalStatus);
   const vat = asString(body.vat);
   const job = asString(body.job) || undefined;
@@ -60,9 +62,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (email.length > 254 || !EMAIL_RE.test(email)) {
     return NextResponse.json({ error: "Adresse e-mail invalide." }, { status: 400 });
   }
-  // Le mot de passe est une empreinte SHA-256 (64 caractères hexadécimaux).
-  if (!/^[a-f0-9]{64}$/.test(passwordHash)) {
-    return NextResponse.json({ error: "Mot de passe invalide." }, { status: 400 });
+  // Mot de passe en clair (Option B) : on revérifie la politique (longueur +
+  // robustesse) côté serveur — jamais de confiance au client.
+  if (!isPasswordAcceptable(password)) {
+    return NextResponse.json(
+      { error: "Le mot de passe ne respecte pas la politique de sécurité." },
+      { status: 400 },
+    );
   }
   if (legalStatus === "" || (vat !== "oui" && vat !== "non")) {
     return NextResponse.json(
@@ -87,7 +93,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     subdomain,
     managerName,
     email,
-    password: passwordHash,
+    password,
     legalStatus,
     vatLiable: vat === "oui",
     job,
