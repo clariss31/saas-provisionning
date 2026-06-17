@@ -20,7 +20,7 @@ Dolibarr** pré-configurée pour le métier choisi, accessible sur `https://<cli
 - **Install de référence** (fabrique des dumps) : `https://ref.pichinov.fr` → dossier `~/kaleido/reference`, base MySQL **`ridinteaduprovi`** / hôte **`ridinteaduprovi.mysql.db`**, admin Dolibarr `admin` / `adminadmin`.
 - **API REST du Master** : `https://kaleido.pichinov.fr/api/index.php` (auth en-tête **`DOLAPIKEY`**) — utilisée en **lecture** (unicité sous-domaine + suivi statut).
 - **Portail provisioning** (à monter) : `https://myaccount.pichinov.fr/register_instance.php`.
-- **VPS** : à commander (**VPS-2 Ubuntu 24.04**). *(L'ancien VPS `vps-256e7885` / `217.182.252.69` est un VPS Windows → inexploitable.)*
+- **VPS = serveur de déploiement ET Master (mono-serveur)** : `vps-2f090f3f.vps.ovh.net`, **IPv4 `51.178.29.164`**, IPv6 `2001:41d0:367:345::1`, **Ubuntu 24.04.4 LTS**, hostname `with1` / FQDN `with1.pichinov.fr`. SSH : `ssh ubuntu@51.178.29.164`. *(L'ancien `vps-256e7885` Windows abandonné.)*
 
 ---
 
@@ -66,15 +66,23 @@ déploiement possible), **30 j d'essai gratuit**, prix 0 (MVP sans paiement), ac
 - **Test `rest-createonly`** : validé en live → le tunnel **crée bien le tiers** dans le Master (CRUD via API
   OK sur le mutualisé). **Détail + résultat : Annexe B §F.**
 
-### ⬜ 7. Mettre en place le VPS Linux = serveur de déploiement — **EN ATTENTE (commande Pichinov)**
-- Commander **VPS-2 (4 vCPU / 8 Go / 75 Go) Ubuntu 24.04 LTS**, accès **root** (clé SSH).
-- Install **root** (depuis la doc SYS, 3 phases) : Phase 1 OS & base (hostname, disque data, comptes/SSH,
-  `git clone` Dolibarr+SYS, `/etc/sellyoursaas.conf` avec `subdomain=with1.pichinov.fr`) → Phase 2 composants
-  (Apache, MySQL/MariaDB, PHP, **agent de déploiement**, **Jailkit**, AppArmor, Postfix, **certbot + cert
-  wildcard**, firewall/fail2ban, crons SYS) → Phase 3 Dolibarr + plugin SYS.
-- ⚠️ **Mettre le Master AUSSI sur le VPS** (archi mono-serveur) : le mutualisé ne peut pas exporter le **NFS**
-  attendu, et l'orchestration SYS a besoin de fonctions système (`exec`/`shell_exec`) **désactivées sur le mutualisé**.
-- **DNS wildcard** `*.with1.pichinov.fr → IP du VPS` + **reverse DNS (PTR)**. Mettre à jour l'IP dans le package.
+### 🟡 7. VPS Linux = serveur de déploiement **+ Master (mono-serveur)** — **EN COURS**
+**Décision d'archi (confirmée par la doc SYS) :** le mutualisé `kaleido.pichinov.fr` **ne peut pas orchestrer**
+le déploiement (l'appel `deployall` fait du SSH sortant via `exec`/`shell_exec`, **désactivés sur le mutualisé**).
+→ On installe **un Master SYS NEUF sur le VPS**, cumulant Master + déploiement. Le mutualisé est **abandonné pour
+SYS** ; ses **4 packages + 4 services seront recréés sur le VPS** (Annexe A). **NFS inutile** en mono-serveur.
+- **✅ DNS** : A/AAAA `with1` + **wildcard `*.with1`** → `51.178.29.164` ; reverse `with1.pichinov.fr`.
+- **✅ Phase 1 (base OS)** : hostname `with1`, `/etc/hosts`, shell bash + mdp min 16, user `admin`
+  (`/home/admin/wwwroot`), SSH (`Match User osu*`, sudoers `set_home`/`use_pty`), dossiers `/mnt/diskhome`
+  +`/mnt/diskbackup`+`/home/jail` (mono-disque), `git clone` Dolibarr `develop` (24-beta) + SellYourSaas,
+  **`/etc/sellyoursaas.conf`** (`masterserver=1`+`instanceserver=1`, `dnsserver=0`, db `dolibarr`/user
+  `sellyoursaas`/pass auto) + `-public.conf` + `/etc/sellyoursaas.d`.
+- **⬜ Phase 2 (composants)** : Apache+MPM-ITK, MariaDB (+ base `dolibarr` + user `sellyoursaas`), PHP 8.3,
+  Jailkit, AppArmor, Postfix, **certbot + cert wildcard `*.with1`**, ufw + fail2ban, **agent de déploiement**
+  + crons SYS, vhosts (back-office + template instance).
+- **⬜ Phase 3 (Dolibarr + SYS)** : installer Dolibarr (Master), activer module SellYourSaas, recréer config
+  module + 4 packages + 4 services (Annexe A), copier image + dumps depuis le mutualisé. ⚠️ MAJ l'IP du VPS
+  dans `MAIN_EXTERNAL_SMTP_CLIENT_IP_ADDRESS` des packages.
 
 ### ⬜ 8. Activer le déploiement réel (live)
 - `.env.local` : `DOLIBARR_MODE=live`, `DOLIBARR_API_URL`, `DOLIBARR_API_KEY` (DOLAPIKEY de service),
