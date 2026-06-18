@@ -312,53 +312,124 @@ async function liveCreateInstance(
     );
   }
 
-  // Le métier choisi → le Service (Application) qui porte le Package = les modules.
-  const serviceRef = serviceForJob(input.job);
-  // `register_instance.php` attend l'ID produit du service : on le résout par sa réf.
-  const products = await dolibarrFetch<Array<{ id: number; ref: string }>>(
-    "products",
-    { query: { sqlfilters: `(t.ref:=:'${serviceRef}')`, limit: 1 } },
-  );
-  const service = Array.isArray(products) ? products[0] : undefined;
-  if (!service) {
-    throw new DolibarrError(
-      `Service SYS introuvable pour le métier « ${serviceRef} ».`,
-    );
-  }
-
-  // Domaine d'instance (ex. with1.pichinov.fr) → SYS construit `ref_customer`.
   const tld = process.env.INSTANCE_DOMAIN ?? "with1.pichinov.fr";
+  // Le métier choisi → la réf du Service (= Package = modules de l'instance).
+  const serviceRef = serviceForJob(input.job);
+  // URL du portail myaccount : sert de Referer. `register_instance.php` REFUSE un
+  // Referer vide (contrôle anti-bot) → on en pose toujours un.
+  const accountUrl =
+    process.env.SELLYOURSAAS_ACCOUNT_URL ?? `https://myaccount.${tld}`;
 
-  // Champs du formulaire public (cf. register.php). Mot de passe EN CLAIR (Option B).
-  // TODO(live): récupérer d'abord le token anti-abus via GET register.php et l'ajouter.
+  // Le portail applique une protection CSRF (jeton lié à la session) ET exige un
+  // Referer non vide. On reproduit donc le navigateur : GET register.php d'abord
+  // pour récupérer le COOKIE de session + le TOKEN, puis POST register_instance.php.
+  const registerPageUrl = `${accountUrl}/register.php?plan=${encodeURIComponent(serviceRef)}`;
+  const pageRes = await fetch(registerPageUrl, { cache: "no-store" });
+  const pageHtml = await pageRes.text();
+  // Cookie de session (PHPSESSID…) : on ne garde que `clé=valeur` (sans les attributs).
+  const setCookies =
+    (pageRes.headers as unknown as { getSetCookie?: () => string[] })
+      .getSetCookie?.() ?? [];
+  const sessionCookie = setCookies.map((c) => c.split(";")[0]).join("; ");
+  // Jeton anti-CSRF caché du formulaire (l'ordre des attributs name/value peut varier).
+  const token =
+    (pageHtml.match(/<input[^>]+name="token"[^>]+value="([^"]+)"/i) ??
+      pageHtml.match(/<input[^>]+value="([^"]+)"[^>]+name="token"/i))?.[1] ?? "";
+
+  // Champs EXACTS du formulaire public register.php, calés sur un déploiement réel :
+  //  - `token` = jeton CSRF lié au cookie de session récupéré ci-dessus ;
+  //  - `plan` = réf du Service ; `tldid` inclut le point de tête (« .with1.pichinov.fr ») ;
+  //  - `tz_string` NON vide (sinon ErrorBadValueProperty) → on force Europe/Paris ;
+  //  - `password`/`password2` EN CLAIR (Option B) — jamais journalisés ni renvoyés.
   const form = new URLSearchParams({
+    token,
     username: input.email,
     orgName: input.companyName,
+    phone: "",
     password: input.password,
     password2: input.password,
+    country: "FR",
     sldAndSubdomain: input.subdomain,
-    tldid: tld,
-    service: String(service.id),
-    productref: serviceRef,
-    package: serviceRef, // le package partage la réf du service métier
+    tldid: `.${tld}`,
     plan: serviceRef,
+    origin: "app",
+    partner: "0",
+    partnerkey: "",
+    checkboxnonprofitorga: "",
+    tz_string: "Europe/Paris",
   });
 
-  const res = await fetch(registerUrl, {
+  // register_instance.php est SYNCHRONE : il déploie (~5 min) AVANT de répondre.
+  // Stratégie : on lance le POST et on attend AU PLUS ~12 s. Un rejet (CSRF, champ
+  // invalide, sous-domaine pris…) revient vite → on le détecte et on le journalise ;
+  // sinon (pas de réponse rapide) le déploiement est lancé → on rend la main, le POST
+  // file en arrière-plan, et l'UI suit l'avancement par polling de getInstanceStatus.
+  const postPromise = fetch(registerUrl, {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Cookie: sessionCookie,
+      Referer: registerPageUrl,
+    },
+    referrer: registerPageUrl,
+    referrerPolicy: "unsafe-url",
     body: form.toString(),
+    redirect: "manual",
     cache: "no-store",
   });
-  if (!res.ok) {
-    throw new DolibarrError(
-      `Échec du provisioning (register_instance) : HTTP ${res.status}.`,
-      res.status,
+  const early = await Promise.race([
+    postPromise.then(async (res) => ({
+      status: res.status,
+      location: res.headers.get("location") ?? "-",
+      body: (await res.text().catch(() => ""))
+        .slice(0, 300)
+        .replace(/\s+/g, " ")
+        .trim(),
+    })),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), 12_000)),
+  ]);
+  if (early) {
+    // Réponse immédiate = rejet probable. On suit la redirection vers register.php
+    // (avec le cookie de session) pour LIRE le message d'erreur affiché par SYS.
+    let detail = early.body || "(corps vide)";
+    if (early.location !== "-") {
+      try {
+        const errUrl = new URL(early.location, accountUrl).toString();
+        const errHtml = await (
+          await fetch(errUrl, {
+            headers: { Cookie: sessionCookie },
+            cache: "no-store",
+          })
+        ).text();
+        const blocks = [
+          ...errHtml.matchAll(
+            /<div[^>]*class="[^"]*error[^"]*"[^>]*>([\s\S]*?)<\/div>/gi,
+          ),
+        ]
+          .map((m) => m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim())
+          .filter(Boolean);
+        detail =
+          blocks.join(" | ").slice(0, 300) ||
+          errHtml.match(/Error[A-Z][A-Za-z]+/)?.[0] ||
+          "(message d'erreur introuvable dans la page)";
+      } catch (e) {
+        detail = `(suivi de la redirection KO : ${e})`;
+      }
+    }
+    // Rejet de SYS (email déjà utilisé, sous-domaine pris, anti-abus…) → on remonte le
+    // message à l'UI plutôt que de laisser le tunnel filer vers un suivi « introuvable ».
+    throw new DolibarrError(detail);
+  } else {
+    // Pas de réponse rapide = déploiement en cours. On laisse filer le POST.
+    console.info(
+      "[provisioning] register_instance : déploiement lancé (aucun rejet immédiat).",
+    );
+    void postPromise.catch((error) =>
+      console.error("[provisioning] POST register_instance (arrière-plan) :", error),
     );
   }
 
-  // TODO(live): `register_instance.php` répond en HTML ; valider son format réel
-  //   pour extraire la réf du contrat. En attendant, on suit par `ref_customer`.
+  // SYS pose `ref_customer = <sous-domaine>.<tld>` sur le contrat → réf de suivi.
   const ref = `${input.subdomain}.${tld}`;
   return { ref, subdomain: input.subdomain, url: instanceUrl(input.subdomain) };
 }
