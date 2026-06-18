@@ -550,10 +550,82 @@ async function liveGetInstanceStatus(
   };
 }
 
-// TODO(live): notification « prête » — lire le contrat, vérifier
-//   options_deployment_status='done', et garantir l'idempotence via un extrafield.
+/**
+ * Dédoublonnage en mémoire des notifications « prête » déjà réclamées (mode live).
+ * Comme le rate-limiting (cf. docs/PLAN.md §5.2), c'est un état **mono-processus** :
+ * suffisant pour le déploiement PM2 actuel (une seule instance Node). Au pire — le
+ * serveur redémarre puis la page de suivi est rechargée — un e-mail pourrait repartir
+ * une fois. Acceptable ; une idempotence durable passerait par un extrafield du contrat.
+ */
+const liveNotifiedRefs = new Set<string>();
+
+/**
+ * Notification « instance prête » en mode live.
+ *
+ * Retrouve le contrat déployé à partir de la réf, lit l'e-mail + le nom du client
+ * **côté serveur** (jamais fournis par le navigateur), et renvoie les coordonnées
+ * d'envoi **une seule fois** (idempotent en mémoire via {@link liveNotifiedRefs}).
+ *
+ * Renvoie `null` si : déjà notifié, contrat introuvable, déploiement pas encore
+ * terminé (`options_deployment_status !== 'done'`), ou e-mail client absent.
+ */
 async function liveClaimReadyNotification(
-  _ref: string,
+  ref: string,
 ): Promise<ReadyNotification | null> {
-  return null;
+  if (liveNotifiedRefs.has(ref)) return null;
+
+  // 1) Contrat porteur de l'instance (ref_customer = <sous-domaine>.<tld>).
+  type LiveContract = {
+    socid?: number | string;
+    fk_soc?: number | string;
+    ref_customer?: string;
+    array_options?: { options_deployment_status?: string };
+  };
+  let contract: LiveContract | undefined;
+  try {
+    const list = await dolibarrFetch<LiveContract[]>("contracts", {
+      query: { sqlfilters: `(t.ref_customer:=:'${ref}')`, limit: 1 },
+    });
+    contract = Array.isArray(list) ? list[0] : undefined;
+  } catch (error) {
+    if (error instanceof DolibarrError && error.status === 404) return null;
+    throw error;
+  }
+  if (!contract) return null;
+  // On n'envoie l'e-mail que si le déploiement est réellement terminé.
+  if (contract.array_options?.options_deployment_status !== "done") return null;
+
+  const socid = contract.socid ?? contract.fk_soc;
+  if (!socid) return null;
+
+  // 2) E-mail + nom du client, lus sur le tiers (jamais fournis par le client).
+  type LiveThirdparty = { email?: string; name?: string };
+  let thirdparty: LiveThirdparty;
+  try {
+    thirdparty = await dolibarrFetch<LiveThirdparty>(`thirdparties/${socid}`);
+  } catch (error) {
+    console.warn(
+      `[provisioning] tiers #${socid} illisible pour la notification :`,
+      error instanceof DolibarrError ? error.message : error,
+    );
+    return null;
+  }
+  const to = thirdparty.email?.trim();
+  if (!to) {
+    console.warn(
+      `[provisioning] aucun e-mail sur le tiers #${socid} → notification « prête » ignorée.`,
+    );
+    return null;
+  }
+
+  const subdomain = contract.ref_customer?.split(".")[0] ?? ref;
+  // Marqué AVANT de rendre la main : évite un double envoi si la page de suivi est
+  // rechargée et rappelle la route quasi simultanément.
+  liveNotifiedRefs.add(ref);
+
+  return {
+    to,
+    companyName: thirdparty.name ?? subdomain,
+    url: instanceUrl(subdomain),
+  };
 }
