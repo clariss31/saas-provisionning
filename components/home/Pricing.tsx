@@ -185,8 +185,8 @@ export default function Pricing({
               key={plan.name}
               className={`relative flex h-full flex-col overflow-hidden rounded-2xl bg-surface p-8 text-left ${
                 plan.highlighted
-                  ? "border-2 border-accent shadow-lift md:scale-105"
-                  : "border border-border-light shadow-card"
+                  ? "border-2 border-pink shadow-lift md:scale-105"
+                  : "border-2 border-accent shadow-card"
               }`}
             >
               {plan.highlighted && (
@@ -195,7 +195,7 @@ export default function Pricing({
                   aria-hidden="true"
                   className="pointer-events-none absolute top-0 right-0 h-28 w-28 overflow-hidden"
                 >
-                  <span className="absolute top-5 -right-9 w-[140px] rotate-45 bg-accent-dark py-1.5 text-center text-[10px] font-bold tracking-widest text-white uppercase">
+                  <span className="absolute top-5 -right-9 w-[140px] rotate-45 bg-pink-dark py-1.5 text-center text-[10px] font-bold tracking-widest text-white uppercase">
                     Populaire
                   </span>
                 </div>
@@ -204,7 +204,7 @@ export default function Pricing({
               <div className="mb-6">
                 <h3
                   className={`mb-2 text-[11px] font-bold tracking-[0.6px] uppercase ${
-                    plan.highlighted ? "text-accent-dark" : "text-soft"
+                    plan.highlighted ? "text-pink-dark" : "text-accent-dark"
                   }`}
                 >
                   {plan.name}
@@ -220,11 +220,10 @@ export default function Pricing({
 
               <Link
                 href={plan.href}
-                className={`mb-8 flex h-11 w-full items-center justify-center rounded-lg px-4 text-center text-[13px] font-medium transition-all ${
-                  plan.highlighted
-                    ? "bg-accent-dark text-white shadow-card hover:-translate-y-px hover:shadow-lift"
-                    : "border border-border text-text hover:bg-content"
-                }`}
+                // CTA toujours en violet plein, quel que soit le plan (mis en
+                // avant ou non) : le bouton « Démarrer l'essai » garde une
+                // identité de marque constante sur les 3 offres.
+                className="mb-8 flex h-11 w-full items-center justify-center rounded-lg bg-accent-dark px-4 text-center text-[13px] font-medium text-white shadow-card transition-all hover:-translate-y-px hover:shadow-lift"
               >
                 {plan.cta}
               </Link>
