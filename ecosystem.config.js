@@ -37,6 +37,11 @@ module.exports = {
       env: {
         NODE_ENV: "production",
         PORT: 3000,
+        // L'app appelle le Maître via son nom public (with1.pichinov.fr), qui a
+        // un enregistrement AAAA (IPv6). Pour éviter qu'undici tente l'IPv6 et
+        // patiente 10 s avant de retomber sur l'IPv4 (piège documenté dans
+        // docs/PLAN.md, Annexe C), on force la résolution IPv4 d'abord.
+        NODE_OPTIONS: "--dns-result-order=ipv4first",
       },
     },
   ],

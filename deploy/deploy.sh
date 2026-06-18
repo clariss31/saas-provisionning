@@ -23,7 +23,12 @@ git fetch --prune origin
 git reset --hard origin/main
 
 echo "→ Installation des dépendances (devDependencies incluses, requises au build)…"
-npm ci --include=dev
+# `npm install` plutôt que `npm ci` : le package-lock.json a été généré sous
+# Windows et n'embarque pas certaines dépendances optionnelles propres à Linux
+# (paquets @emnapi/* du repli WASM) → `npm ci`, strict, échoue. `npm install`
+# réconcilie le lock pour la plateforme courante. Le `git reset --hard` ci-dessus
+# restaure le lock du dépôt à chaque déploiement (le drift local est sans effet).
+npm install --no-audit --no-fund
 
 echo "→ Build de production…"
 npm run build
