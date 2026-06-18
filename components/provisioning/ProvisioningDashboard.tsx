@@ -30,12 +30,22 @@ const STEPS = [
 /** Intervalle d'interrogation (polling) du statut, en millisecondes. */
 const POLL_MS = 2000;
 
+/**
+ * Nombre de 404 consécutifs tolérés avant de conclure « introuvable ». En live, le
+ * contrat n'existe pas instantanément : le POST vers SYS est *fire-and-forget* et le
+ * contrat est créé quelques secondes plus tard. On ne conclut donc pas à l'absence
+ * sur le 1er 404. ~10 × POLL_MS ≈ 20 s de marge.
+ */
+const NOT_FOUND_LIMIT = 10;
+
 type StepStatus = "done" | "active" | "pending";
 
 /** Statut renvoyé par `GET /api/provisioning/[ref]`. */
 type ProvisioningStatus = {
   state: "deploying" | "deployed" | "error";
   step: number;
+  /** URL publique de l'instance déployée (cible du bouton « Accéder à mon espace »). */
+  url?: string;
 };
 
 /**
@@ -67,6 +77,9 @@ export default function ProvisioningDashboard({
   useEffect(() => {
     if (done || notFound) return;
     let cancelled = false;
+    // En live, la création du contrat est asynchrone côté SYS → on tolère plusieurs
+    // 404 d'affilée avant de conclure à un déploiement réellement introuvable.
+    let notFoundCount = 0;
 
     async function poll() {
       try {
@@ -74,9 +87,11 @@ export default function ProvisioningDashboard({
           cache: "no-store",
         });
         if (res.status === 404) {
-          if (!cancelled) setNotFound(true);
+          notFoundCount += 1;
+          if (notFoundCount >= NOT_FOUND_LIMIT && !cancelled) setNotFound(true);
           return;
         }
+        notFoundCount = 0;
         if (!res.ok) return; // erreur transitoire : on réessaiera au tick suivant
         const data = (await res.json()) as ProvisioningStatus;
         if (!cancelled) setStatus(data);
@@ -257,7 +272,9 @@ export default function ProvisioningDashboard({
       {/* CTA final (état succès uniquement). */}
       {done && (
         <a
-          href={accessUrl}
+          // Priorité à l'URL réelle de l'instance déployée (remontée par le statut) ;
+          // `accessUrl` n'est qu'un repli (jamais utilisé une fois « déployé »).
+          href={status?.url ?? accessUrl}
           className="group z-10 mt-12 flex h-[52px] w-full max-w-[400px] items-center justify-center gap-2.5 rounded-xl bg-accent-dark text-[14px] font-bold text-white shadow-card transition-all hover:-translate-y-px hover:shadow-lift"
         >
           Accéder à mon espace

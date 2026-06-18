@@ -1,0 +1,65 @@
+# Déploiement automatique en production.
+#
+# Déclenché à chaque push sur `main` (ou manuellement depuis l'onglet Actions).
+# Deux étapes successives :
+#   1. build-test : valide le code (lint + tests + build) AVANT tout déploiement.
+#   2. deploy     : se connecte en SSH au VPS et y lance le script de mise à jour.
+#
+# Si « build-test » échoue, « deploy » n'est pas exécuté : la production reste
+# intacte. Le déploiement n'a donc lieu que sur du code qui compile et passe les
+# tests (dont le toggle Tarifs et la vérif de sous-domaine — cf. CLAUDE.md).
+
+name: Déploiement production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+# Empêche deux déploiements de tourner en parallèle (file d'attente).
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  build-test:
+    name: Validation (lint + tests + build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v4
+
+      - name: Installation de Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Installation des dépendances
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tests unitaires
+        run: npm test
+
+      - name: Build de production
+        run: npm run build
+
+  deploy:
+    name: Déploiement sur le VPS
+    needs: build-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Connexion SSH et mise à jour
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # Port SSH (Kinsta/VPS utilisent parfois un port non standard).
+          port: ${{ secrets.VPS_PORT }}
+          # Lance le script versionné dans le repo. Toute la logique de
+          # déploiement vit dans deploy/deploy.sh, pas dans ce workflow.
+          script: bash /var/www/saas-provisionning/deploy/deploy.sh
