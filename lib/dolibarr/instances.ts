@@ -389,9 +389,13 @@ async function liveCreateInstance(
     new Promise<null>((resolve) => setTimeout(() => resolve(null), 12_000)),
   ]);
   if (early) {
-    // Réponse immédiate = rejet probable. On suit la redirection vers register.php
-    // (avec le cookie de session) pour LIRE le message d'erreur affiché par SYS.
-    let detail = early.body || "(corps vide)";
+    // Réponse immédiate. Ça PEUT être un rejet (CSRF, champ invalide, email déjà
+    // pris…), mais aussi une **création réussie** que SYS confirme par une redirection
+    // rapide (tiers + contrat créés). On ne lève donc une erreur QUE si on récupère un
+    // **vrai message d'erreur** (bloc `.error` ou code `ErrorXxx`). Sinon, on considère
+    // la création lancée et on laisse le polling de getInstanceStatus trancher (un vrai
+    // échec finira en 404 → l'UI affiche « introuvable » après sa tolérance).
+    let detail = "";
     if (early.location !== "-") {
       try {
         const errUrl = new URL(early.location, accountUrl).toString();
@@ -408,19 +412,35 @@ async function liveCreateInstance(
         ]
           .map((m) => m[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim())
           .filter(Boolean);
-        detail =
-          blocks.join(" | ").slice(0, 300) ||
-          errHtml.match(/Error[A-Z][A-Za-z]+/)?.[0] ||
-          "(message d'erreur introuvable dans la page)";
+        // detail reste "" si AUCUN bloc d'erreur n'est trouvé (= pas un rejet).
+        detail = blocks.join(" | ").slice(0, 300) || errHtml.match(/Error[A-Z][A-Za-z]+/)?.[0] || "";
       } catch (e) {
-        detail = `(suivi de la redirection KO : ${e})`;
+        // Suivi de la redirection impossible → on ne peut pas conclure à un rejet.
+        console.warn(`[provisioning] suivi de la redirection KO : ${e}`);
+        detail = "";
       }
+    } else if (/\b(error|erreur|exist|invalid)\b/i.test(early.body)) {
+      // Pas de redirection : un éventuel message d'erreur serait dans le corps direct.
+      detail = early.body;
     }
-    // Rejet de SYS (email déjà utilisé, sous-domaine pris, anti-abus…) → on remonte le
-    // message à l'UI plutôt que de laisser le tunnel filer vers un suivi « introuvable ».
-    throw new DolibarrError(detail);
+
+    if (detail) {
+      // Vrai message d'erreur → rejet « métier » remonté à l'UI (status 4xx). Détail brut loggé.
+      console.warn(`[provisioning] inscription refusée par le portail : ${detail}`);
+      const message = /already exists/i.test(detail)
+        ? "Le mail a déjà été utilisé sur une autre instance. Connectez-vous sur votre espace ou utilisez un autre mail."
+        : "L'inscription a été refusée par le portail. Vérifiez vos informations et réessayez.";
+      throw new DolibarrError(message, 409);
+    }
+    // Réponse rapide SANS message d'erreur = création lancée → on laisse filer le POST.
+    console.info(
+      "[provisioning] register_instance : réponse rapide sans erreur → création en cours (suivi par polling).",
+    );
+    void postPromise.catch((error) =>
+      console.error("[provisioning] POST register_instance (arrière-plan) :", error),
+    );
   } else {
-    // Pas de réponse rapide = déploiement en cours. On laisse filer le POST.
+    // Pas de réponse rapide = déploiement synchrone en cours. On laisse filer le POST.
     console.info(
       "[provisioning] register_instance : déploiement lancé (aucun rejet immédiat).",
     );

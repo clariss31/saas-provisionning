@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from "next/server";
 import { slugify, validateSubdomain } from "@/lib/instances/subdomain";
 import { isSubdomainAvailable, createInstance } from "@/lib/dolibarr/instances";
 import { isPasswordAcceptable } from "@/lib/instances/password";
+import { DolibarrError } from "@/lib/dolibarr/client";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 /**
  * `POST /api/inscription` — crée une instance à partir des données du tunnel
@@ -39,6 +41,16 @@ function asString(value: unknown): string {
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  // Anti-abus : la création d'instance est coûteuse (tiers + contrat + déploiement)
+  // → on limite à 5 tentatives / 10 min par IP.
+  const rl = rateLimit(`inscription:${clientIp(request)}`, 5, 10 * 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Trop de tentatives de création. Réessayez dans quelques minutes." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
+    );
+  }
+
   let body: InscriptionBody;
   try {
     body = (await request.json()) as InscriptionBody;
@@ -110,6 +122,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // On logge l'erreur réelle côté serveur (terminal) pour diagnostic ; le mot
     // de passe n'apparaît jamais dans ces objets d'erreur.
     console.error("[inscription] échec de la création de l'instance :", error);
+    // Rejet « métier » remontable à l'utilisateur (ex. email déjà utilisé) = status 4xx
+    // → on affiche son message. Sinon = panne technique → message neutre.
+    if (
+      error instanceof DolibarrError &&
+      typeof error.status === "number" &&
+      error.status >= 400 &&
+      error.status < 500
+    ) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     return NextResponse.json(
       { error: "La création a échoué. Réessayez." },
       { status: 502 },
