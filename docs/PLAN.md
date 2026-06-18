@@ -128,6 +128,17 @@ automatique (compte Unix, base, dump, vhost+cert, mot de passe admin) → instan
 3. Le bouton final ouvre `https://<client>.with1.pichinov.fr` réellement accessible. ✅
 4. `npm test` vert. ✅ *(WAVE / Lighthouse à revérifier au polish.)*
 
+### Phase 6 — Mise en ligne du front Next.js (provi.pichinov.fr) ✅ (18/06)
+Front déployé en production sur le **même VPS `with1`**, avec **déploiement automatique sur push `main`**. Fichiers dans `deploy/` + runbook `deploy/README.md`.
+
+- **URL** : `https://provi.pichinov.fr` — certificat Let's Encrypt **dédié** via `certbot certonly --dns-ovh -d provi.pichinov.fr` (le wildcard `*.with1.pichinov.fr` ne couvre PAS `provi`, qui est un frère de `with1` sous `pichinov.fr`). DNS : A `provi` → `51.178.29.164`.
+- **Reverse proxy = Apache** (déjà en place pour Dolibarr/SYS sur 80/443) — **pas de nginx** (conflit de ports). `a2enmod proxy proxy_http` ; vhost `/etc/apache2/sites-available/provi.pichinov.fr.conf` (modèle versionné `deploy/apache/provi.pichinov.fr.conf`) : `ProxyPass http://127.0.0.1:3000`, `ProxyPreserveHost On`, `RequestHeader set X-Forwarded-Proto https`. AppArmor laisse passer le proxy (pas de règle réseau bloquante sur le profil Apache).
+- **Runtime** : `next start` géré par **PM2** sous l'utilisateur Unix `deploy` (non-sudoer), dans `/var/www/saas-provisionning`, écoute uniquement sur `127.0.0.1:3000` (`ecosystem.config.js`, `--hostname 127.0.0.1`). `NODE_OPTIONS=--dns-result-order=ipv4first` (garde-fou IPv6, Annexe C). `pm2 startup systemd -u deploy` + `pm2 save` → survie crash **et** reboot.
+- **Secrets prod** : `/var/www/saas-provisionning/.env.local` (valeurs §4.2), git-ignoré, **jamais écrasé** par un déploiement.
+- **CI/CD** : `.github/workflows/deploy.yml` — sur push `main` : job **build-test** (lint + tests + build sur Ubuntu) PUIS job **deploy** en SSH (user `deploy`, action `appleboy/ssh-action`) qui lance `deploy/deploy.sh` (`git reset --hard origin/main` → `npm install` → `npm run build` → `pm2 reload`). Secrets repo : `VPS_HOST`, `VPS_USER`, `VPS_PORT`, `VPS_SSH_KEY`.
+- **Piège lockfile** : on utilise `npm install` (PAS `npm ci`) partout — le `package-lock.json` généré sous Windows n'embarque pas les dépendances optionnelles Linux (`@emnapi/*`) → `npm ci` échoue en CI comme sur le VPS.
+- **Reste à faire** : valider un cycle complet push→prod ; audit WAVE / Lighthouse sur l'URL prod ; (option) appeler l'API Dolibarr en `127.0.0.1` pour ne pas exposer la clé.
+
 ---
 
 ## 📎 Annexe A — Runbook : créer un package métier (reproductible)

@@ -269,21 +269,31 @@ export default function ProvisioningDashboard({
         })}
       </ol>
 
-      {/* CTA final (état succès uniquement). */}
+      {/* Rappel des identifiants + CTA final (état succès uniquement). */}
       {done && (
-        <a
-          // Priorité à l'URL réelle de l'instance déployée (remontée par le statut) ;
-          // `accessUrl` n'est qu'un repli (jamais utilisé une fois « déployé »).
-          href={status?.url ?? accessUrl}
-          className="group z-10 mt-12 flex h-[52px] w-full max-w-[400px] items-center justify-center gap-2.5 rounded-xl bg-accent-dark text-[14px] font-bold text-white shadow-card transition-all hover:-translate-y-px hover:shadow-lift"
-        >
-          Accéder à mon espace
-          <Icon
-            name="arrow-right"
-            size={20}
-            className="transition-transform group-hover:translate-x-1"
-          />
-        </a>
+        <div className="z-10 mt-12 flex w-full max-w-[400px] flex-col gap-4">
+          {/* Le login de l'admin de l'instance est TOUJOURS `admin` (posé par
+              Sell Your SaaS) ; le mot de passe est celui choisi au questionnaire.
+              On le rappelle ici pour que le client sache comment se connecter. */}
+          <p className="rounded-xl border border-border-light bg-content px-4 py-3 text-center text-[13px] leading-relaxed text-soft">
+            Connectez-vous avec l&apos;identifiant{" "}
+            <b className="text-text">admin</b> et le mot de passe que vous avez
+            choisi lors de votre inscription.
+          </p>
+          <a
+            // Priorité à l'URL réelle de l'instance déployée (remontée par le statut) ;
+            // `accessUrl` n'est qu'un repli (jamais utilisé une fois « déployé »).
+            href={status?.url ?? accessUrl}
+            className="group flex h-[52px] w-full items-center justify-center gap-2.5 rounded-xl bg-accent-dark text-[14px] font-bold text-white shadow-card transition-all hover:-translate-y-px hover:shadow-lift"
+          >
+            Accéder à mon espace
+            <Icon
+              name="arrow-right"
+              size={20}
+              className="transition-transform group-hover:translate-x-1"
+            />
+          </a>
+        </div>
       )}
     </div>
   );
