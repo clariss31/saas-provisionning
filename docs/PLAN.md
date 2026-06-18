@@ -1,175 +1,162 @@
 # Plan d'action — Provisionner une instance Dolibarr (SellYourSaas)
 
-## 🎯 Objectif
+## 🎯 Objectif — ✅
 À la fin du questionnaire (`/inscription`), l'app crée **automatiquement une vraie instance
 Dolibarr** pré-configurée pour le métier choisi, accessible sur `https://<client>.with1.pichinov.fr`.
-
-## 🏗️ Architecture (validée)
-- **Master** = Dolibarr + module **SellYourSaas (SYS)** sur **hébergement OVH mutualisé Performance**
-  (back-office : clients, contrats, packages, services). Le mutualisé **ne déploie pas** d'instances.
-- **Serveur de déploiement** = **VPS Linux (root)** où les instances clientes sont réellement déployées
-  (comptes Unix, vhosts Apache, bases, jails). **Un seul wildcard DNS** `*.with1.pichinov.fr → IP VPS`.
-- **App Next.js** = le tunnel public ; à la soumission, elle déclenche le provisioning côté SYS.
-- `withX` = numéro du serveur de déploiement (scaling : `with1`, `with2`…).
-
-## 🔑 Accès & emplacements clés
-- **SSH Master** : `ssh ridinteadu-fabrice@ssh02.cluster128.gra.hosting.ovh.net` (SSH activé dans Manager OVH → Hébergement → onglet **FTP-SSH**).
-- **DATA_ROOT** Master : `/home/ridinteadu/kaleido/dolibarr/documents` (clé `$dolibarr_main_data_root` de `htdocs/conf/conf.php`).
-- **Image déployable** : `…/documents/sellyoursaas/git/dolibarr_24.0` (Dolibarr 24.0-beta + **Kaleido** dans `htdocs/custom/kaleido`).
-- **Dumps des packages** : `…/documents/sellyoursaas/packages/<Métier>/<metier>.sql`.
-- **Install de référence** (fabrique des dumps) : `https://ref.pichinov.fr` → dossier `~/kaleido/reference`, base MySQL **`ridinteaduprovi`** / hôte **`ridinteaduprovi.mysql.db`**, admin Dolibarr `admin` / `adminadmin`.
-- **API REST du Master** : `https://kaleido.pichinov.fr/api/index.php` (auth en-tête **`DOLAPIKEY`**) — utilisée en **lecture** (unicité sous-domaine + suivi statut).
-- **Portail provisioning** (à monter) : `https://myaccount.pichinov.fr/register_instance.php`.
-- **VPS = serveur de déploiement ET Master (mono-serveur)** : `vps-2f090f3f.vps.ovh.net`, **IPv4 `51.178.29.164`**, IPv6 `2001:41d0:367:345::1`, **Ubuntu 24.04.4 LTS**, hostname `with1` / FQDN `with1.pichinov.fr`. SSH : `ssh ubuntu@51.178.29.164`. *(L'ancien `vps-256e7885` Windows abandonné.)*
+→ **Le pipeline complet fonctionne de bout en bout** : questionnaire → POST portail → déploiement
+automatique (compte Unix, base, dump, vhost+cert, mot de passe admin) → instance connectable.
 
 ---
 
-## 📋 Les étapes
+## 🏗️ Architecture finale — **MONO-SERVEUR sur VPS**
+- **Un seul VPS Linux** cumule **Master** (back-office : clients, contrats, packages, services) **ET
+  serveur de déploiement** (instances clientes : comptes Unix, bases, vhosts Apache).
+- **Pourquoi pas le mutualisé `kaleido.pichinov.fr` ?** Le déploiement (`sellyoursaasRemoteAction('deployall')`)
+  fait du SSH sortant via `exec`/`shell_exec`, **désactivés sur l'hébergement partagé** → le mutualisé **ne peut
+  pas orchestrer**. Le Master doit donc être là où ces fonctions marchent = le VPS. Le mutualisé est **abandonné
+  pour SYS** (gardé comme source des dumps / sauvegarde).
+- **App Next.js** = tunnel public ; à la soumission elle POSTe le formulaire public vers
+  `register_instance.php` du portail (SYS fait tout le reste). Suivi par polling de l'API REST.
+- **NFS inutile** en mono-serveur (pas de partage d'image entre serveurs).
+- `withX` = pool de déploiement (scaling futur : `with1`, `with2`…). Ici **`with1`**.
 
-### ✅ 0. Front Next.js (déjà livré, mode `mock`)
-Tunnel `/inscription` (3 étapes) + check sous-domaine live (US 5.2) + tableau de bord `/provisioning/[ref]`
-(polling, 4 sous-étapes) + e-mail MailJet. Couche d'isolation `lib/dolibarr/*` avec bascule `mock`/`live`
-(le défaut reste `mock`). Tests Jest verts (toggle Tarifs US 4.2, sous-domaine US 5.2, mapping métier, mdp).
+---
 
-### ✅ 1. Configurer le module SellYourSaas (Master)
-Setup : <https://kaleido.pichinov.fr/custom/sellyoursaas/admin/setup.php>
-- Comptes `anonymous` + `anonymousbatch` (permissions minimales), tags **« Produits Saas »** / **« Clients SaaS »**.
-- Réglages : nom du service (Provi), domaine `pichinov.fr`, e-mails (`support@`/`noreply@pichinov.com`), URL `myaccount.pichinov.fr`.
+## 🔑 Accès & emplacements clés
 
-### ✅ 2. Créer une Dolibarr de référence (OVH)
-<https://ref.pichinov.fr/> — sert **uniquement** à produire les dumps « usine ». Base MySQL dédiée +
-sous-domaine Multisite → dossier `~/kaleido/reference/htdocs` → installeur (admin `admin`/`adminadmin`).
-*(Détails : Annexe A §B.)*
+### VPS (Master + déploiement)
+- **Machine** : `vps-2f090f3f.vps.ovh.net` — **IPv4 `51.178.29.164`**, IPv6 `2001:41d0:367:345::1`, **Ubuntu 24.04.4 LTS**. Hostname `with1` / FQDN `with1.pichinov.fr`.
+- **SSH** : `ssh ubuntu@51.178.29.164` puis `sudo -i` (root). *(Clé SSH + coupure du password = durcissement à venir.)*
+- **Back-office Dolibarr (Master)** : `https://with1.pichinov.fr` — admin `admin` / `<mdp choisi à l'install>`.
+- **Portail client (myaccount)** : `https://myaccount.with1.pichinov.fr`.
+- **Instances** : `https://<client>.with1.pichinov.fr`.
+- **Compte Unix central** : `admin` (`/home/admin/wwwroot`). Dolibarr Master = `…/dolibarr` (branche `develop` = 24.0.0-beta), module SYS = `…/dolibarr_sellyoursaas` (lié dans `dolibarr/htdocs/custom/sellyoursaas`).
+- **DATA_ROOT Master** : `/home/admin/wwwroot/dolibarr_documents`. **Image** déployable : `…/sellyoursaas/git/dolibarr_24.0`. **Dumps** : `…/sellyoursaas/packages/<Métier>/<metier>.sql`.
+- **Base** : MariaDB 10.11, base `dolibarr`, user applicatif `sellyoursaas` (mdp dans `/etc/sellyoursaas.conf`), root via socket Unix.
+- **Conf SYS** : `/etc/sellyoursaas.conf` (mono-serveur : `masterserver=1`+`instanceserver=1`, `dnsserver=0`, `signature_key=…`).
+- **Agent de déploiement** : service `remote_server_launcher` (port 8080), log **`/var/log/remote_server.log`**.
+- **Log Dolibarr Master** (activé) : `/home/admin/wwwroot/dolibarr_documents/dolibarr.log`.
+- **API REST** : `https://with1.pichinov.fr/api/index.php` (en-tête `DOLAPIKEY`) — lecture (unicité sous-domaine + suivi statut).
+- **DNS (OVH, zone pichinov.fr)** : A/AAAA `with1` + **wildcard `*.with1`** → VPS ; reverse `with1.pichinov.fr`. Certificat Let's Encrypt **wildcard `*.with1.pichinov.fr` + `with1.pichinov.fr`** (plugin DNS-OVH, auto-renouvelé).
 
-### ✅ 3. Construire l'image + faire les dumps SQL (SSH)
-Image `dolibarr_24.0` = code du Master **copié** (la branche GitHub `24.0` n'existe pas encore) + **Kaleido**
-embarqué. Puis, pour chaque métier : activer ses modules dans l'install de référence → `mysqldump` →
-`…/packages/<Métier>/`. **Procédure complète reproductible : Annexe A (Runbook).**
+### Mutualisé (source des dumps — abandonné pour SYS)
+- **SSH** : `ssh ridinteadu-fabrice@ssh.cluster128.hosting.ovh.net`. Home **`/homez.786/ridinteadu`** (≠ `/home/ridinteadu`).
+- **Dumps source** : `~/kaleido/dolibarr/documents/sellyoursaas/{git,packages}` (copiés vers le VPS par rsync).
+- **Install de référence** (fabrique les dumps) : `https://ref.pichinov.fr` (Annexe A §B).
 
-### ✅ 4. Créer les 4 packages (un par métier)
-**Fleuriste · Freelance · Garagiste · ArtisanBTP** — chacun = mêmes champs techniques + son **dump** (= ses
-modules métier, cf. SPEC §1.3 et Annexe B §A). Champ IP du VPS dans `MAIN_EXTERNAL_SMTP_CLIENT_IP_ADDRESS`
-(à mettre à jour avec la nouvelle IP VPS). État = **Active**.
+---
 
-### ✅ 5. Créer les 4 services *Application*
-Un service Dolibarr **type *Application*** par métier, **relié à son package** (champ Package = ce qui rend le
-déploiement possible), **30 j d'essai gratuit**, prix 0 (MVP sans paiement), accès SSH/DB = Non.
-⚠️ Au clonage d'un service, **revérifier le champ « Package »** (il reste pointé sur l'original).
+## 📋 Les étapes, dans l'ordre
 
-### ✅ 6. Recon de l'API + câbler l'app au provisioning (Lot 8 front)
-- **Recon** : l'API SYS REST ne déploie pas ; la vraie logique est `myaccount/register_instance.php`
-  (déclenché par l'appel PHP interne `sellyoursaasRemoteAction('deployall')`). **Détail : Annexe B §C/§D.**
-- **Câblage front fait** : **Option B** (mot de passe en clair, `isPasswordAcceptable`, hash SHA-256 retiré) ;
-  **mapping `job → Service`** (`serviceForJob` + test) ; `INSTANCE_DOMAIN=with1.pichinov.fr` ;
-  `liveCreateInstance` = **POST `register_instance.php`** (scaffold, `TODO(live)` : token CSRF + parsing réponse) ;
-  env `SELLYOURSAAS_REGISTER_URL`. Mode `mock` reste le défaut.
-- **Test `rest-createonly`** : validé en live → le tunnel **crée bien le tiers** dans le Master (CRUD via API
-  OK sur le mutualisé). **Détail + résultat : Annexe B §F.**
+### Phase 0 — Front & préparation (sur le mutualisé, AVANT le VPS) ✅
+- **0.1 Front Next.js** (mode `mock`) : tunnel `/inscription` (3 étapes) + check sous-domaine (US 5.2) + tableau de bord `/provisioning/[ref]` (polling) + e-mail MailJet. Couche `lib/dolibarr/*` avec bascule `mock`/`live`.
+- **0.2 Module SYS configuré** sur le mutualisé (brouillon) : comptes anonymes, tags, réglages.
+- **0.3 Dolibarr de référence → dumps « usine »** des 4 métiers (Annexe A).
+- **0.4 4 packages + 4 services** créés sur le mutualisé (brouillon).
+- **0.5 Recon API** : SYS n'a **pas** d'endpoint REST de déploiement ; tout passe par `register_instance.php` (Annexe B §C/§D).
+- **0.6 Pivot d'archi** : le test live a révélé que le mutualisé **ne peut pas déployer** (`exec`/`shell_exec` off) → décision **mono-serveur sur VPS**. Tout est **recréé** sur le VPS (l'image + les dumps sont copiés tels quels).
 
-### 🟡 7. VPS Linux = serveur de déploiement **+ Master (mono-serveur)** — **EN COURS**
-**Décision d'archi (confirmée par la doc SYS) :** le mutualisé `kaleido.pichinov.fr` **ne peut pas orchestrer**
-le déploiement (l'appel `deployall` fait du SSH sortant via `exec`/`shell_exec`, **désactivés sur le mutualisé**).
-→ On installe **un Master SYS NEUF sur le VPS**, cumulant Master + déploiement. Le mutualisé est **abandonné pour
-SYS** ; ses **4 packages + 4 services seront recréés sur le VPS** (Annexe A). **NFS inutile** en mono-serveur.
-- **✅ DNS** : A/AAAA `with1` + **wildcard `*.with1`** → `51.178.29.164` ; reverse `with1.pichinov.fr`.
-- **✅ Phase 1 (base OS)** : hostname `with1`, `/etc/hosts`, shell bash + mdp min 16, user `admin`
-  (`/home/admin/wwwroot`), SSH (`Match User osu*`, sudoers `set_home`/`use_pty`), dossiers `/mnt/diskhome`
-  +`/mnt/diskbackup`+`/home/jail` (mono-disque), `git clone` Dolibarr `develop` (24-beta) + SellYourSaas,
-  **`/etc/sellyoursaas.conf`** (`masterserver=1`+`instanceserver=1`, `dnsserver=0`, db `dolibarr`/user
-  `sellyoursaas`/pass auto) + `-public.conf` + `/etc/sellyoursaas.d`.
-- **⬜ Phase 2 (composants)** : Apache+MPM-ITK, MariaDB (+ base `dolibarr` + user `sellyoursaas`), PHP 8.3,
-  Jailkit, AppArmor, Postfix, **certbot + cert wildcard `*.with1`**, ufw + fail2ban, **agent de déploiement**
-  + crons SYS, vhosts (back-office + template instance).
-- **⬜ Phase 3 (Dolibarr + SYS)** : installer Dolibarr (Master), activer module SellYourSaas, recréer config
-  module + 4 packages + 4 services (Annexe A), copier image + dumps depuis le mutualisé. ⚠️ MAJ l'IP du VPS
-  dans `MAIN_EXTERNAL_SMTP_CLIENT_IP_ADDRESS` des packages.
+### Phase 1 — Base OS du VPS (root) ✅
+> Préalable : DNS posés chez OVH (A/AAAA `with1` + `*.with1` → IP VPS ; reverse via section IP → « Modifier le reverse »).
 
-### ⬜ 8. Activer le déploiement réel (live)
-- `.env.local` : `DOLIBARR_MODE=live`, `DOLIBARR_API_URL`, `DOLIBARR_API_KEY` (DOLAPIKEY de service),
-  `SELLYOURSAAS_REGISTER_URL` (portail myaccount), **retirer** `SELLYOURSAAS_PROVISION_MODE=rest-createonly`.
-- Finaliser le `TODO(live)` de `liveCreateInstance` : récupérer le **token anti-abus** (GET `register.php`) avant
-  le POST, gérer la **réponse** (réf du contrat) et la **requête longue** (POST async + polling du statut).
-- Vérifier bout-en-bout (cf. ci-dessous).
+- **1.1 Hostname + `/etc/hosts`** : `hostnamectl set-hostname with1` ; mapping `51.178.29.164 with1.pichinov.fr with1` ; `hostname -f` → `with1.pichinov.fr`.
+- **1.2 Réglages login** : `ln -fs /bin/bash /usr/bin/sh` ; longueur mdp min 16 (`minlength=16` sur la ligne `pam_unix.so` de `/etc/pam.d/common-password`).
+- **1.3 Compte Unix `admin`** : `useradd -m -s /usr/bin/bash -g admin admin` (uid ≥ 1000) ; dossiers `/home/admin/{logs,wwwroot,backup}`.
+- **1.4 SSH** : `chmod go-rw /etc/ssh/sshd_config` ; bloc `Match User osu*` (`PasswordAuthentication yes`) en fin de `sshd_config` ; sudoers drop-in `Defaults set_home`/`use_pty` ; `sshd -t` puis `systemctl reload ssh`. *(Pas de `AllowUsers`/coupure password ici = durcissement plus tard.)*
+- **1.5 Dossiers de travail** (mono-disque, pas de 2ᵉ disque ni NFS) : `/mnt/diskhome/home`, `/mnt/diskbackup/{backup,archives-test,archives-paid}`, `/home/jail` + liens symboliques, `…/dolibarr_documents/sellyoursaas_local/{spam,crt}`.
+- **1.6 Sources** (en `admin`, dans `~/wwwroot`) : `git clone … dolibarr --branch develop` (= 24.0.0-beta, comme l'image) + `git clone … dolibarr_sellyoursaas`.
+- **1.7 Conf SYS** : `/etc/sellyoursaas.conf` (`domain=pichinov.fr`, `subdomain=with1.pichinov.fr`, `masterserver=1`, `instanceserver=1`, `dnsserver=0`, `ipserverdeployment`/`allowed_hosts=51.178.29.164`, `databasehost=localhost`, `database=dolibarr`, `databaseuser=sellyoursaas`, `databasepass=<auto openssl rand -hex 16>`, `dolibarrdir=…/dolibarr`, backupdir/archivedir…) + `/etc/sellyoursaas-public.conf` + `mkdir /etc/sellyoursaas.d`.
 
-### ⬜ 9. Durcissement avant ouverture publique
-- **Rate-limiting** sur `/api/inscription` et `/api/subdomain/check` (elles taperont le Master en live). *(Noté pour plus tard.)*
+### Phase 2 — Composants système (root) ✅
+- **2.1 Paquets** (mode non-interactif + preseed Postfix « Internet Site » / mailname `with1.pichinov.fr`) : `apache2`+`libapache2-mpm-itk`, `mariadb-server/-client`, `php 8.3` (+ extensions), `ufw`, `fail2ban`, `certbot` (ajouté en 2.6), antivirus/antispam, `postfix`/`mailutils`, etc. ⚠️ `php8.3-fpm` **désactivé** (`systemctl disable php8.3-fpm`) — SYS utilise **MPM-ITK + mod_php**, pas php-fpm.
+- **2.2 UID + Apache** : `/etc/login.defs` `UID_MAX`/`GID_MAX` = 500000 ; `a2dismod mpm_event` + `a2enmod mpm_prefork mpm_itk php8.3 rewrite headers ssl http2 vhost_alias …` ; `LimitUIDRange 1 500000` + `LimitGIDRange` ; dossiers `sellyoursaas-{available,online,offline}` + lien `sellyoursaas-enabled` ; `IncludeOptional sellyoursaas-enabled/*.conf` dans `apache2.conf` ; drop-in `PrivateTmp=false`.
+- **2.3 MariaDB** : root via socket (défaut OK) ; `CREATE DATABASE dolibarr` ; user `sellyoursaas`@`localhost` + GRANTs larges (gère la base Master ET celles des instances) ; mdp lu depuis `/etc/sellyoursaas.conf`.
+- **2.4 PHP de base** : `/etc/php/sellyoursaas-base.ini` (timezone Europe/Paris, `memory_limit=512M`, upload 20M/post 24M, `max_execution_time=600`, `max_input_vars=5000`) lié dans `cli/conf.d` + `apache2/conf.d`. *(Le `sellyoursaas.ini` du dépôt = pré-traitement mail `phpsendmail`, à activer au durcissement.)*
+- **2.5 Agent de déploiement** : `ln -fs …/scripts/remote_server_launcher.sh /etc/init.d/remote_server_launcher` ; `systemctl enable --now` → écoute `php -S 0.0.0.0:8080`.
+- **2.6 certbot + cert wildcard** : `apt install certbot python3-certbot-dns-ovh` ; **jeton API OVH** (api.ovh.com/createToken, droits GET/POST/PUT/DELETE `/domain/zone/*`) → `/etc/letsencrypt/ovh.ini` (chmod 600) ; `certbot certonly --dns-ovh -d "with1.pichinov.fr" -d "*.with1.pichinov.fr"` (auto-renew).
+- **2.7 Firewall + fail2ban** : `ufw allow 22,80,443` puis `default deny incoming`/`allow outgoing` + `--force enable` (le 8080 et le 3306 restent **bloqués de l'extérieur**) ; `fail2ban` actif (prison `sshd`).
+- **2.8 `secureBash`** (shell restreint des comptes d'instance) : `cp /bin/dash /bin/secureBash; cp /usr/bin/dash /usr/bin/secureBash; chmod 755 /usr/bin/secureBash`. **Indispensable** (sinon l'auth `osu…` échoue au 1er déploiement — cf. Annexe C).
+- **2.9 MariaDB joignable par le réseau** (pour le « SQL après déploiement » : le Master se reconnecte à la base de l'instance via son FQDN) : `bind-address = 0.0.0.0` ; user `sellyoursaas`@`'%'` (mêmes GRANTs) ; `ufw allow from 51.178.29.164 to any port 3306`. Le 3306 reste bloqué pour l'extérieur.
+- *(Sautés à ce stade : **Jailkit** (pas de SSH client → inutile), **NFS** (mono-serveur), **AppArmor/watchdogs/crons SYS** = durcissement.)*
 
-### ⬜ 10. Vérification
-1. Compléter `/inscription` → un **tiers + contrat** apparaissent dans le Master (statut `processing`).
-2. SYS déploie sur le VPS → `/provisioning/[ref]` progresse jusqu'à `DEPLOYED`.
-3. Le bouton final ouvre `https://<client>.with1.pichinov.fr` **réellement accessible** (Kaleido présent, modules du métier).
-4. E-mail de bienvenue reçu (une fois). `npm test` vert ; WAVE 0 erreur ; Lighthouse ≥ 90.
+### Phase 3 — Master Dolibarr + module SYS ✅
+- **3.1 Vhost back-office** : `/etc/apache2/sites-available/with1.pichinov.fr.conf` (80→443, cert wildcard, `DocumentRoot …/dolibarr/htdocs`, **`AssignUserId admin admin`** pour que PHP tourne en `admin` et puisse écrire, `open_basedir`). `a2ensite` + `a2dissite 000-default`.
+- **3.2 Installeur Dolibarr** (`https://with1.pichinov.fr/install/`) : base `dolibarr`/`localhost`/`sellyoursaas`, **« Créer la base/l'utilisateur » DÉCOCHÉ**, **répertoire documents = `/home/admin/wwwroot/dolibarr_documents`** (chemin absolu !), URL racine `https://with1.pichinov.fr`. Puis `touch …/dolibarr_documents/install.lock`.
+- **3.3 Module SellYourSaas** : `ln -fs /home/admin/wwwroot/dolibarr_sellyoursaas /home/admin/wwwroot/dolibarr/htdocs/custom/sellyoursaas` (le dépôt **EST** le module — pas de sous-dossier `htdocs`) → activer dans Configuration → Modules (+ dépendances).
+- **3.4 Config du module** (setup) : nom `Provi`, domaine `pichinov.fr`, e-mails, **URL compte client = `https://myaccount.with1.pichinov.fr`** (avec le `https://` !), répertoires (`/home/jail/home`, `/mnt/diskbackup/…`), **« SSH public keys à déployer »** = contenu de `/home/admin/.ssh/id_rsa_sellyoursaas.pub`.
+- **3.5 Comptes anonymes + tags** : users `anonymous` + `anonymousbatch` (permissions minimales, cf. skill) ; catégories produit/tiers (« Services Cloud » / clients).
+- **3.6 Fiche serveur de déploiement** (SellYourSaas → Serveurs de déploiement → Nouveau) : domaine `with1.pichinov.fr`, hôte `with1`, IP `51.178.29.164`, **Clé de signature** (🔄). ⚠️ La 🔄 n'a pas persisté → clé posée par SQL **identique** dans la fiche (`llx_sellyoursaas_deploymentserver.serversignaturekey`) ET dans `/etc/sellyoursaas.conf` (`signature_key=…`) + `systemctl restart remote_server_launcher` (cf. Annexe C).
+- **3.7 Clé SSH `admin`** : `ssh-keygen … id_rsa_sellyoursaas` ; `pub` dans son propre `authorized_keys` ; `~/.ssh/config` (IdentityFile pour l'IP/FQDN/github) → le Master se connecte en SSH **à lui-même** sans mdp.
+- **3.8 Transfert image + dumps** (mutualisé → VPS, en `admin`) : `rsync -az ridinteadu-fabrice@ssh.cluster128.hosting.ovh.net:kaleido/dolibarr/documents/sellyoursaas/git/  …/sellyoursaas/git/` (≈300 Mo) puis idem `packages/`. **Puis fix collation** (dumps faits sous MySQL 8) : `sed -i -E 's/utf8mb4_0900_[a-z_]+/utf8mb4_unicode_ci/g' …/packages/*/*.sql` (sinon MariaDB rejette à l'import, cf. Annexe C).
+- **3.9 Recréer 4 packages + 4 services** : packages clonés (Annexe A) — tous les champs sont **portables** (variables `__DOL_DATA_ROOT__`…), l'IP du VPS est déjà dans `MAIN_EXTERNAL_SMTP_CLIENT_IP_ADDRESS`. Services type **Application**, liés au package, **durée par défaut obligatoire** (ex. 1 mois), 30 j d'essai, catégorie « Services Cloud ». L'URL d'inscription se récupère via **SellYourSaas → Subscription Pages**.
+- **3.10 Vhost portail myaccount** : `/etc/apache2/sites-available/myaccount.with1.pichinov.fr.conf` (cert wildcard, `DocumentRoot …/dolibarr_sellyoursaas/myaccount`, **`Alias /source /home/admin/wwwroot/dolibarr/htdocs`**). Puis **lien bootstrap** : `ln -s …/dolibarr/htdocs/main.inc.php …/dolibarr_sellyoursaas/myaccount/main.inc.php`. Symlinks cert d'instance : `/etc/apache2/with.sellyoursaas.com.{crt,key,-intermediate.crt}` → `…/letsencrypt/live/with1.pichinov.fr/{fullchain,privkey,chain}.pem`.
+- **3.11 Premier déploiement de test** → instance `testfleuriste.with1.pichinov.fr` accessible, login `admin` OK. ✅
+
+### Phase 4 — Brancher l'app Next.js (live) ✅
+- **4.1 Prérequis Master** : module **API/Web services REST** activé + **DOLAPIKEY** (fiche user admin → onglet Clé API).
+- **4.2 `.env.local`** : `DOLIBARR_MODE=live`, `DOLIBARR_API_URL=https://with1.pichinov.fr/api/index.php` + `DOLIBARR_API_KEY=<clé>`, `SELLYOURSAAS_REGISTER_URL=https://myaccount.with1.pichinov.fr/register_instance.php`, `SELLYOURSAAS_ACCOUNT_URL=https://myaccount.with1.pichinov.fr`, `INSTANCE_DOMAIN=with1.pichinov.fr`. **Pas** de `SELLYOURSAAS_PROVISION_MODE` (vide = vrai déploiement ; `rest-createonly` = test sans déploiement).
+- **4.3 `liveCreateInstance`** ([lib/dolibarr/instances.ts](../lib/dolibarr/instances.ts)) finalisé : **GET `register.php`** (récupère cookie de session + **jeton CSRF**) → **POST `register_instance.php`** avec `token` + champs exacts (`username, orgName, phone, password×2, country=FR, sldAndSubdomain, tldid=.with1.pichinov.fr, plan=<service>, origin, partner, tz_string=Europe/Paris`) + cookie + Referer. `register_instance.php` est **synchrone (~5 min)** → on attend **≤12 s** : un rejet (email déjà pris, sous-domaine pris…) revient vite → **erreur remontée à l'UI** ; sinon **fire-and-forget** + suivi par polling.
+- **4.4 UI** ([ProvisioningDashboard.tsx](../components/provisioning/ProvisioningDashboard.tsx)) : tolérance des **404 transitoires** (le contrat met quelques s à exister) ; **bouton final → `status.url`** (URL réelle de l'instance, plus kaleido).
+- **4.5 Test bout-en-bout** ✅ : questionnaire (email + sous-domaine **neufs**) → déploiement → tableau de bord → instance accessible.
+
+### Phase 5 — Reste à faire (durcissement + polish) ⬜
+- 🧹 Nettoyer les instances de test ; 💾 commit branche `instances` (`npm test` + lint).
+- 🌍 Les **3 autres métiers** (Freelance/Garagiste/ArtisanBTP) marchent à l'identique (dumps déjà corrigés).
+- 🔒 **Durcissement** : rate-limiting `/api/inscription` & `/api/subdomain/check` ; clé SSH `ubuntu` + couper le password root ; **crons SYS** (facturation/suspension/backup — sans eux, pas de cycle de vie payant) ; **Postfix** (SPF/DKIM, wrapper `phpsendmail`) ; **AppArmor** ; watchdogs.
+- ✨ **Polish** : afficher proprement « email déjà utilisé » dans le formulaire (aujourd'hui = erreur générique) ; gérer le cas serverless (`liveCreateInstance` suppose un serveur Node persistant → `after()`/file si déploiement serverless).
+
+### Vérification (faite ✅)
+1. `/inscription` → tiers + contrat créés dans le Master (statut `processing`). ✅
+2. SYS déploie sur le VPS → `/provisioning/[ref]` progresse jusqu'à `DEPLOYED`. ✅
+3. Le bouton final ouvre `https://<client>.with1.pichinov.fr` réellement accessible. ✅
+4. `npm test` vert. ✅ *(WAVE / Lighthouse à revérifier au polish.)*
 
 ---
 
 ## 📎 Annexe A — Runbook : créer un package métier (reproductible)
 
-> Master sur OVH mutualisé Performance. SSH : `ssh ridinteadu-fabrice@ssh02.cluster128.gra.hosting.ovh.net`.
-> DATA_ROOT = `/home/ridinteadu/kaleido/dolibarr/documents`. Un package = **(A)** image + **(B)** dump → **(D)** champs UI.
+> Les **dumps** ont été produits sur le mutualisé puis **copiés sur le VPS** (Phase 3.8). Cette annexe documente
+> leur fabrication (réutilisable pour un nouveau métier). Sur le VPS, un package se **clone** ensuite via l'UI.
 
-### A. Image de code + Kaleido (en SSH)
+### A. Image de code + Kaleido
 ```bash
 cd ~/kaleido/dolibarr/documents/sellyoursaas/git
-# Dolibarr 24 est encore en dev → AUCUNE branche stable "24.0" sur GitHub. On copie le code du Master :
 mkdir -p dolibarr_24.0/htdocs
-cp -r ~/kaleido/dolibarr/htdocs/.  dolibarr_24.0/htdocs/
+cp -r ~/kaleido/dolibarr/htdocs/.  dolibarr_24.0/htdocs/      # branche GitHub 24.0 inexistante → on copie le code
 cp -r ~/kaleido/dolibarr/scripts   dolibarr_24.0/
-rm -f  dolibarr_24.0/htdocs/conf/conf.php          # ne pas embarquer la conf du Master
-rm -rf dolibarr_24.0/htdocs/custom/sellyoursaas    # une instance cliente n'est pas un Master
-grep DOL_MAJOR_VERSION dolibarr_24.0/htdocs/version.inc.php                 # => 24
-ls dolibarr_24.0/htdocs/custom/kaleido/core/modules/modKaleido.class.php    # Kaleido présent
+rm -f  dolibarr_24.0/htdocs/conf/conf.php                    # ne pas embarquer la conf du Master
+rm -rf dolibarr_24.0/htdocs/custom/sellyoursaas              # une instance n'est pas un Master
+ls dolibarr_24.0/htdocs/custom/kaleido/core/modules/modKaleido.class.php   # Kaleido présent
 ```
 
 ### B. Install de référence (pour produire le dump)
-1. **Base MySQL** : Manager OVH → Hébergement → *Bases de données*. ⚠️ Hôte de connexion = **`<base>.mysql.db`**
-   (ex. `ridinteaduprovi.mysql.db`), **PAS** `mysqlXXX.euYYY` ni `localhost`.
-2. **Copie + sous-domaine** :
-   ```bash
-   cp -r ~/kaleido/dolibarr/documents/sellyoursaas/git/dolibarr_24.0 ~/kaleido/reference
-   mkdir -p ~/kaleido/reference/documents
-   ```
-   Manager OVH → **Multisite** → ajouter `ref.pichinov.fr` → dossier `kaleido/reference/htdocs` (activer SSL).
-3. **Installeur** `https://ref.pichinov.fr` (accepter l'alerte SSL le temps que Let's Encrypt se génère) :
-   pilote `mysqli`, serveur `<base>.mysql.db`, port `3306`, nom/identifiant = la base, mdp de la base,
-   **DÉCOCHER** « Créer la base » **et** « Créer l'utilisateur ». Admin `admin` / `adminadmin` (mdp ≥ 8 car).
-   Puis `touch ~/kaleido/reference/documents/install.lock`.
-4. Se connecter → **Configuration → Modules** → activer **Kaleido** + les modules du métier (cf. SPEC §1.3).
+1. **Base MySQL** OVH : hôte = **`<base>.mysql.db`** (jamais `localhost`).
+2. Copier `dolibarr_24.0` → `~/kaleido/reference` + sous-domaine **Multisite** `ref.pichinov.fr` → `kaleido/reference/htdocs` (SSL).
+3. Installeur `https://ref.pichinov.fr` : `mysqli`, `<base>.mysql.db`, port 3306, **DÉCOCHER** « Créer la base/l'utilisateur », admin `admin`/`adminadmin` (≥ 8 car). `touch …/reference/documents/install.lock`.
+4. Configuration → Modules → activer **Kaleido** + les modules du métier (SPEC §1.3).
 
-### C. Dump « usine » (en SSH)
+### C. Dump « usine »
 ```bash
-# Remettre l'admin en état "défaut" attendu par le package (sinon le reset du mdp par instance NE s'applique pas) :
+# admin remis en état "défaut" attendu par le package (sinon le reset mdp par instance ne s'applique pas) :
 mysql -h <base>.mysql.db -u <user> -p <base> -e \
   "UPDATE llx_user SET pass='admin', pass_crypted='25edccd81ce2def41eae1317392fd106d8152a5b' WHERE login='admin';"
 mysqldump --no-tablespaces --single-transaction -h <base>.mysql.db -u <user> -p <base> > ~/<metier>.sql
-grep -o "MAIN_MODULE_[A-Z]*" ~/<metier>.sql | sort -u   # vérifier les modules embarqués
-mkdir -p ~/kaleido/dolibarr/documents/sellyoursaas/packages/<Ref>
-mv ~/<metier>.sql ~/kaleido/dolibarr/documents/sellyoursaas/packages/<Ref>/
+mkdir -p ~/kaleido/dolibarr/documents/sellyoursaas/packages/<Ref> && mv ~/<metier>.sql $_
 ```
-> ⚠️ Si on se reconnecte à `ref.pichinov.fr` après ce SQL, le login est cassé (pass_crypted = marker). Le restaurer :
-> `php -r "echo password_hash('adminadmin', PASSWORD_DEFAULT);"` puis `UPDATE llx_user SET pass_crypted='<hash>', pass=NULL WHERE login='admin';` (dans le **client mysql interactif**, pas en `-e` à cause des `$`).
-> Pour les dumps suivants, **ne poser que `pass='admin'`** (sans toucher `pass_crypted`) → le login reste utilisable.
+> ⚠️ **Collation** : le MySQL 8 du mutualisé écrit `utf8mb4_0900_ai_ci`, **inconnue de MariaDB**. Avant import sur
+> le VPS : `sed -i -E 's/utf8mb4_0900_[a-z_]+/utf8mb4_unicode_ci/g' <metier>.sql` (cf. Annexe C).
+> ⚠️ Après ce SQL, le login `ref.pichinov.fr` est cassé (pass_crypted = marker). Le restaurer si besoin :
+> `php -r "echo password_hash('adminadmin', PASSWORD_DEFAULT);"` puis `UPDATE llx_user SET pass_crypted='<hash>', pass=NULL WHERE login='admin';`.
 
 ### D. Remplir le package (UI : SellYourSaas → Packages)
-3 *Dir with sources* → l'image ; *Template of config file 1* = bloc `conf.php` complet ; *Dir with dump files* =
-`__DOL_DATA_ROOT__/sellyoursaas/packages/__PACKAGEREF__` ; *Template of cron file* (ligne complète) ;
-*Shell after deployment* (`touch`/`chown`/`chmod`) ; *Shell after switch to paying mode* =
-`rm -f __INSTANCEDIR__/documents/installmodules.lock;` ; *Sql after deployment* (grand bloc, avec l'**IP du VPS**
-dans `MAIN_EXTERNAL_SMTP_CLIENT_IP_ADDRESS`) ; *Sql to reset password* ; **État = Active**.
-*(Pour un nouveau métier : **cloner** un package existant et ne changer que la Réf + le dump.)*
-
-### Pièges rencontrés
-- Hôte base OVH = `<base>.mysql.db` (jamais `localhost`).
-- Branche GitHub `24.0` inexistante (24 en dev) → copier le code du Master.
-- Dolibarr 24 : mdp admin ≥ 8 car → installer avec `adminadmin`, puis SQL pour remettre `pass='admin'`.
-- Cert SSL du sous-domaine non immédiat → bypasser l'alerte navigateur le temps qu'il se génère.
-- SSH mutualisé restreint (pas de root) → OK image+dump, **insuffisant pour déployer** (→ VPS).
+3 *Dir with sources* → l'image ; *Template of config file 1* = `conf.php` complet (db_host **`127.0.0.1`**) ;
+*Dir with dump files* = `__DOL_DATA_ROOT__/sellyoursaas/packages/__PACKAGEREF__` ; *Template of cron file* ;
+*Shell after deployment* ; *Sql after deployment* (grand bloc, **IP du VPS** dans `MAIN_EXTERNAL_SMTP_CLIENT_IP_ADDRESS`) ;
+*Sql to reset password* ; **État = Active**. *(Nouveau métier : **cloner** un package, changer la Réf + le dump.)*
 
 ---
 
-## 📎 Annexe B — Guideline : brancher le questionnaire au provisioning
-
-> Recon faite via le swagger : [docs/dolibarr-swagger.json](dolibarr-swagger.json). API Master :
-> `https://kaleido.pichinov.fr/api/index.php` (auth `DOLAPIKEY`).
+## 📎 Annexe B — Guideline : le questionnaire → le provisioning
 
 ### A. Correspondance métier → Service → Package
 | Slug front (`?job=`) | Service / Package | Modules du dump |
@@ -179,53 +166,53 @@ dans `MAIN_EXTERNAL_SMTP_CLIENT_IP_ADDRESS`) ; *Sql to reset password* ; **État
 | `garagiste` | **Garagiste** | Produits · Propositions · Stocks · Factures · Kaleido |
 | `artisan` | **ArtisanBTP** | Produits · Propositions · Interventions (FICHEINTER) · Projets · Factures · Kaleido |
 
-⚠️ Slug front **`artisan`** → service **`ArtisanBTP`** (mapping `serviceForJob` dans [lib/dolibarr/instances.ts](../lib/dolibarr/instances.ts)).
+⚠️ Slug front **`artisan`** → service **`ArtisanBTP`** (mapping `serviceForJob`).
 
-### B. Données du questionnaire → propriétés de l'instance
-- `companyName` → slug → **sous-domaine** → URL `https://<slug>.with1.pichinov.fr`
+### B. Données du questionnaire → instance
+- `companyName` → slug → **sous-domaine** → `https://<slug>.with1.pichinov.fr`
 - `job` → **Service** (table A) → modules/config de la Dolibarr déployée
-- `email` → admin de l'instance ; `password` → mdp admin (**Option B : en clair sur TLS** ; jamais journalisé/persisté)
-- `managerName` / `legalStatus` / `vat` → société & mentions (non déterminants pour le déploiement)
+- `email` → admin de l'instance ; `password` → mdp admin (**Option B : en clair sur TLS**, jamais journalisé/persisté)
+- `country=FR` et `phone=""` sont posés par défaut côté app (pas demandés au questionnaire).
 
-### C. Flux de provisioning RÉEL (recon `register.php` → `register_instance.php`)
-L'**API SYS REST** (`/sellyoursaasapi/*`) ne gère que les **packages** — **aucun endpoint « déployer »**.
-La logique est dans **`myaccount/register_instance.php`** :
-1. **Tiers** : créé avec `name`, `email`, `phone`, `client=2`, `code_client=-1` (auto).
-2. **Contrat** : `ref_customer = <sous-domaine>.<tld>`, `socid`, + **ligne de service** (`fk_product` = id du Service).
-3. **Extrafields** (`array_options['options_*']`) : `options_plan`, `options_deployment_status='processing'`,
-   `options_deployment_host` (IP VPS), `options_deployment_init_email`, `options_deployment_init_adminpass`
-   (**mdp admin EN CLAIR** ← Option B), `options_date_endfreeperiod`, + creds OS/DB **générés par SYS**.
-4. **Déclenchement (synchrone ~300 s)** : `sellyoursaasRemoteAction('deployall', $contract, …)` — **méthode PHP**,
-   PAS un endpoint REST. Fin OK → `options_deployment_status='done'` + `activateAll()`.
-- Lien Service↔Package : le Service porte l'extrafield **`options_package`** = ref du Package.
+### C. Flux RÉEL (`register.php` → `register_instance.php`)
+Pas d'endpoint REST de déploiement. La logique est dans **`myaccount/register_instance.php`** : crée tiers +
+contrat (`ref_customer = <sous-domaine>.<tld>`) + extrafields (`options_deployment_*`, dont
+`options_deployment_init_adminpass` = **mdp admin en clair**) + creds Unix/DB générés, puis **déclenche
+`sellyoursaasRemoteAction('deployall')`** (synchrone ~5 min) → `options_deployment_status='done'`.
 
-### D. ⚠️ Conséquence d'archi : l'app POSTe vers `register_instance.php`
-L'API REST seule **ne déploie pas** (l'appel `deployall` est interne). → `liveCreateInstance` **POSTe le formulaire
-public** vers `register_instance.php` ; SYS fait tout (tiers + contrat + extrafields + creds générés + déploiement).
-- **Champs à POSTer** : `username` (e-mail), `orgName`, `password` + `password2` (clair), `phone`, `country`,
-  `sldAndSubdomain`, `tldid`, `service` (id Service), `productref`, `package` (ref), `plan`.
-- **À valider (`TODO(live)`)** : token anti-abus/CSRF (GET `register.php` d'abord), parsing de la réponse,
-  requête longue vs polling.
-- **Suivi** (`liveGetInstanceStatus`) : `GET /contracts` → `options_deployment_status` (`processing`→`done`).
-- **Unicité sous-domaine** (`liveIsSubdomainAvailable`) : contrats par `ref_customer`.
+### D. Implémentation app (`liveCreateInstance`)
+1. **GET `register.php?plan=<ref>`** → **cookie de session** (`getSetCookie`) + **jeton CSRF** (champ caché `token`). Sans token → **HTTP 403** « Token not provided ».
+2. **POST `register_instance.php`** : `token` + `username` (email) + `orgName` + `phone` + `password`/`password2` (clair) + `country=FR` + `sldAndSubdomain` + `tldid=.with1.pichinov.fr` + `plan=<ref>` + `origin` + `partner=0` + `tz_string=Europe/Paris` ; en-têtes `Cookie` + `Referer`.
+3. **Synchrone** → on attend **≤12 s** (Promise.race) : réponse rapide qui **redirige vers register.php** = rejet → on suit la redirection pour lire le message et **lever une erreur** (ex. *« An account already exists for this email »*) ; sinon = déploiement lancé → **fire-and-forget** + on rend la réf.
+4. **Suivi** : `liveGetInstanceStatus` lit `options_deployment_status` (`processing`→`done`). **Unicité** : contrats par `ref_customer`.
 
-### E. Décision — mot de passe : **Option B**
-Le client choisit son mot de passe ; il transite **en clair sur TLS** (jamais journalisé/persisté) car SYS pose ce
-mdp exact sur l'admin de l'instance (extrafield `options_deployment_init_adminpass`). Le hash SHA-256 côté
-navigateur est **retiré** ; la jauge de robustesse reste, la validation devient une **politique** (`isPasswordAcceptable`).
-*(Option A — SYS génère le mdp — écartée.)*
+### E. Décision mot de passe = **Option B**
+Le client choisit son mdp ; transite en clair sur TLS (jamais journalisé/persisté) car SYS le pose tel quel sur
+l'admin de l'instance. Hash SHA-256 navigateur **retiré** ; validation = politique (`isPasswordAcceptable`).
 
-### F. Test `rest-createonly` (valider le lien app→Master SANS le VPS)
-1. DOLAPIKEY sur le Master (droits Tiers + Contrats + Produits).
-2. `.env.local` : `DOLIBARR_MODE=live`, `DOLIBARR_API_URL=https://kaleido.pichinov.fr/api/index.php`,
-   `DOLIBARR_API_KEY=<clé>`, **`SELLYOURSAAS_PROVISION_MODE=rest-createonly`**. Redémarrer `npm run dev`.
-3. Remplir le tunnel → un **tiers « [TEST Provi] »** apparaît dans le Master.
-4. **Nettoyer** les `[TEST Provi]` ensuite.
-Code : `liveCreateInstanceRestOnly`. Diagnostic : log serveur `[provisioning] createInstance: mode=…`.
+---
 
-> 🧪 **Résultat test API client** : lien front→Master **validé en live** — lecture (GET) ET écriture (POST tiers)
-> fonctionnent sur le mutualisé Performance. Le « 503 Varnish » initial = un **champ manquant** (`code_client`,
-> exigé par `mod_codeclient_monkey` → fix `code_client: -1`). La création de **contrat** plante en revanche sur le
-> mutualisé (un hook SYS appelle une fonction système désactivée) → mise en **best-effort** dans le mode test ;
-> elle passera sur le VPS. **« Déploiement introuvable » en fin de tunnel = normal** (pas de contrat/déploiement sur
-> le mutualisé). → Confirme : back-office OK sur mutualisé, **déploiement = VPS indispensable**.
+## 📎 Annexe C — Pièges rencontrés (et leurs correctifs)
+
+### Install VPS / système
+- **php-fpm timeout au démarrage** → on **désactive** php-fpm (SYS = MPM-ITK + mod_php).
+- **`secureBash` manquant** (`useradd: missing shell '/bin/secureBash'` → déploiement « Could not authenticate with username osu… », OK seulement au redéploiement) → `cp /bin/dash /bin/secureBash; cp /usr/bin/dash /usr/bin/secureBash; chmod 755 /usr/bin/secureBash`.
+
+### Déploiement
+- **« signature does not match … signature_key … /etc/sellyoursaas.conf »** → la clé de la fiche serveur (colonne `serversignaturekey`) doit être **identique** à `signature_key=` dans `/etc/sellyoursaas.conf`, puis `systemctl restart remote_server_launcher`.
+- **Vhost d'instance : `SSLCertificateFile … with.sellyoursaas.com.crt does not exist`** → symlinks `/etc/apache2/with.sellyoursaas.com.{crt,key,-intermediate.crt}` → cert Let's Encrypt wildcard.
+- **Import dump : `ERROR 1273 Unknown collation 'utf8mb4_0900_ai_ci'`** (dump MySQL 8 sur MariaDB) → `sed -i -E 's/utf8mb4_0900_[a-z_]+/utf8mb4_unicode_ci/g'` sur les dumps.
+- **« Failed to connect … <instance>.with1…/dbn… » après l'import** (le Master joint la base de l'instance via son FQDN pour le SQL-after-deploy, mais MariaDB n'écoutait qu'en `127.0.0.1`) → `bind-address=0.0.0.0` + user `sellyoursaas`@`'%'` + `ufw allow from 51.178.29.164 to any port 3306`.
+
+### Portail myaccount
+- **« Include of main fails »** → `ln -s …/dolibarr/htdocs/main.inc.php …/dolibarr_sellyoursaas/myaccount/main.inc.php`.
+- **Assets 404 sous `/source/…`** (jQuery/jstz ne chargent pas → `tz_string` vide → `ErrorBadValueProperty`) → `Alias /source /home/admin/wwwroot/dolibarr/htdocs` dans le vhost myaccount.
+- **URL d'inscription en 404 / `…/custom/sellyoursaas/myaccount.with1.pichinov.fr/register.php`** → mettre l'**URL compte client avec `https://`** dans le setup ; récupérer le lien via **Subscription Pages**.
+- **« Service/Plan was not found »** → service sans **durée par défaut** ; et utiliser l'URL de Subscription Pages (param `plan`).
+
+### Branchement app (POST programmatique vers `register_instance.php`)
+- **403 « Token not provided »** → faire un **GET `register.php`** d'abord pour récupérer le **cookie de session + le `token`**, puis POSTer avec.
+- **`Cookie`/`Referer` via fetch** : undici (Node) **les envoie** (contrairement au navigateur) → pas besoin de client bas niveau.
+- **« An account already exists for this email »** = règle métier SYS (1 compte/email) → utiliser un email neuf, ou passer par le dashboard client.
+- **Suivi « Déploiement introuvable » prématuré** → tolérer plusieurs **404 transitoires** (contrat créé en asynchrone).
+- **`register_instance.php` synchrone (~5 min)** → ne pas l'`await` complètement : Promise.race ≤12 s, puis fire-and-forget + polling.
