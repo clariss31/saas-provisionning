@@ -36,7 +36,10 @@ jobs:
           cache: npm
 
       - name: Installation des dépendances
-        run: npm ci
+        # `npm install` (et non `npm ci`) : le package-lock.json, généré sous
+        # Windows, n'inclut pas les dépendances optionnelles Linux (@emnapi/* WASM)
+        # → `npm ci`, strict, échouerait sur le runner Ubuntu.
+        run: npm install --no-audit --no-fund
 
       - name: Lint
         run: npm run lint
