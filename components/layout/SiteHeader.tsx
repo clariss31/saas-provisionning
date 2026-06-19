@@ -14,6 +14,14 @@ const NAV_LINKS = [
 ];
 
 /**
+ * URL de l'espace client (portail SellYourSaas), où le client gère ses
+ * abonnements, factures et instances. Lien **externe** (autre domaine) → on
+ * utilise une balise `<a>`. À adapter si la marque/le domaine change (cf. la
+ * variable serveur `SELLYOURSAAS_ACCOUNT_URL`).
+ */
+const ESPACE_CLIENT_URL = "https://myaccount.with1.pichinov.fr/";
+
+/**
  * Barre de navigation supérieure des pages vitrines.
  *
  * Sticky, fond translucide avec flou ; se densifie légèrement au scroll.
@@ -118,7 +126,16 @@ export default function SiteHeader() {
           </nav>
 
           {/* Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
+            {/* Lien vers l'espace client (portail). Externe (autre domaine) → <a>.
+                Discret (lien texte) pour laisser « Démarrer » comme CTA principal. */}
+            <a
+              href={ESPACE_CLIENT_URL}
+              className="hidden text-[12.5px] font-medium text-soft transition-colors hover:text-accent-dark md:inline-flex md:items-center"
+            >
+              Mon espace
+            </a>
+
             {/* CTA principal : visible en ligne à partir de `md` ; sur mobile il
                 est repris en pleine largeur dans le tiroir. */}
             <Link
@@ -203,8 +220,15 @@ export default function SiteHeader() {
               })}
             </ul>
 
-            {/* CTA principal repris en pleine largeur, ancré en bas du tiroir. */}
-            <div className="mt-auto border-t border-border-light p-4">
+            {/* CTA principal + lien espace client, ancrés en bas du tiroir. */}
+            <div className="mt-auto flex flex-col gap-3 border-t border-border-light p-4">
+              <a
+                href={ESPACE_CLIENT_URL}
+                onClick={() => setMenuOpen(false)}
+                className="flex h-12 items-center justify-center rounded-lg border border-border text-[14px] font-medium text-text transition-colors hover:bg-content"
+              >
+                Mon espace
+              </a>
               <Link
                 href="/metiers"
                 onClick={() => setMenuOpen(false)}
