@@ -231,6 +231,17 @@ h1, h2, h3, h4, h5, h6 { font-weight: 600; }
   border-radius: var(--radius-sm);
 }
 
+/* Exception : titres rendus focusables UNIQUEMENT pour l'annonce aux lecteurs
+   d'écran (focus programmatique au changement d'étape). On masque l'anneau de
+   focus — qui suggérerait à tort un élément interactif — sans retirer le focus
+   (l'orientation visuelle de progression est assurée par le stepper). Règle
+   non-layered : elle l'emporte sur la règle globale ci-dessus, qu'un utilitaire
+   Tailwind « layered » ne pourrait pas surcharger. */
+.focus-silent:focus,
+.focus-silent:focus-visible {
+  outline: none;
+}
+
 /* ══════════════════════════════════════════════════════
    Fonds dégradés de la page d'accueil
    (définis ici pour garder un markup lisible côté composants)
@@ -317,6 +328,28 @@ h1, h2, h3, h4, h5, h6 { font-weight: 600; }
   /* Animation neutralisée : on laisse l'utilisateur faire défiler à la main. */
   .social-marquee-viewport {
     overflow-x: auto;
+  }
+}
+
+/* ── Barre de progression indéterminée (déploiement d'instance) ──
+   Le back-end SellYourSaas ne renvoie qu'un signal binaire « en cours / prêt » :
+   on n'affiche donc pas de pourcentage, mais un segment qui glisse en boucle. */
+@keyframes provi-indeterminate {
+  0%   { transform: translateX(-110%); }
+  100% { transform: translateX(260%); }
+}
+
+.provi-indeterminate {
+  animation: provi-indeterminate 1.3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Sans animation, un segment partiel semblerait « figé à mi-course » : on
+     remplit toute la barre (en gardant le positionnement absolu, donc la hauteur
+     `inset-y-0`) pour signaler clairement « en cours ». */
+  .provi-indeterminate {
+    width: 100%;
+    transform: none;
   }
 }
 

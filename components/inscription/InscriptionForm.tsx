@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
 import SubdomainField, { type SubdomainStatus } from "./SubdomainField";
 import ModernField, { MODERN_CONTROL } from "./ModernField";
+import DeployingView from "@/components/provisioning/DeployingView";
 import { scorePassword, PASSWORD_MIN_LENGTH } from "@/lib/instances/password";
 
 type Props = {
@@ -95,6 +96,14 @@ export default function InscriptionForm({ domain, job, billing }: Props) {
   const step2Valid = legalStatus !== "" && vat !== "";
   const step3Valid = emailValid && strength.acceptable;
 
+  // Dès le clic « Créer mon instance », on remplace le formulaire par le loader
+  // indéterminé (le même que la page de suivi) → l'utilisateur tombe directement
+  // sur l'écran de chargement, sans phase « bouton désactivé ». Le POST tourne en
+  // arrière-plan ; en cas de rejet, le `catch` rebascule sur le formulaire.
+  if (submitting) {
+    return <DeployingView companyName={companyName.trim() || undefined} />;
+  }
+
   return (
     <>
       <Stepper step={step} />
@@ -148,6 +157,9 @@ export default function InscriptionForm({ domain, job, billing }: Props) {
               // On transmet aussi le métier : si la réf de suivi devient
               // introuvable, l'écran d'erreur peut proposer de reprendre
               // l'inscription avec le bon template pré-sélectionné.
+              // On NE réinitialise PAS `submitting` après un succès : le loader
+              // reste affiché jusqu'à ce que la navigation démonte le formulaire,
+              // pour une transition continue vers la page de suivi (sans flash).
               router.push(
                 `/provisioning/${data.ref}?company=${encodeURIComponent(companyName.trim())}${
                   job ? `&job=${encodeURIComponent(job)}` : ""
@@ -157,7 +169,8 @@ export default function InscriptionForm({ domain, job, billing }: Props) {
               setSubmitError(
                 err instanceof Error ? err.message : "Une erreur est survenue.",
               );
-            } finally {
+              // Rejet métier (ex. mail déjà utilisé) : on revient au formulaire
+              // avec l'erreur, sans perdre les champs déjà saisis.
               setSubmitting(false);
             }
           }}
@@ -463,7 +476,7 @@ function StepHeader({
         id="step-heading"
         ref={headingRef}
         tabIndex={-1}
-        className="text-[20px] font-bold text-text outline-none"
+        className="focus-silent text-[20px] font-bold text-text outline-none"
       >
         {title}
       </h2>
@@ -530,7 +543,7 @@ function Stepper({ step }: { step: number }) {
 function ContextChip({ label, value }: { label: string; value: string }) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-md bg-accent-light px-2.5 py-1 text-[11.5px] font-medium text-accent-dark">
-      <span className="uppercase tracking-wide text-accent-dark/70">{label}</span>
+      <span className="uppercase tracking-wide">{label}</span>
       {value}
     </span>
   );
