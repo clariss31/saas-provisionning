@@ -1,0 +1,221 @@
+/* ══════════════════════════════════════════════════════════════════════
+   Provi — thème du portail client SellYourSaas (myaccount)
+   Aligné sur le design system Kaleïdo (cf. DESIGN.md) : lavande dominante,
+   accent violet, cartes arrondies, ombres teintées, police Poppins.
+
+   Où l'appliquer :
+     SellYourSaas → Setup → champ « CSS du tableau de bord client ».
+     - Si le champ attend du CSS brut : coller tout ce fichier.
+     - Si le champ attend une URL : héberger ce fichier (ex. sur le portail)
+       et y pointer.
+
+   Portée : tout est préfixé par `body.myaccount` → n'affecte que le portail,
+   et l'emporte sur le CSS Bootstrap/portlet d'origine (spécificité + !important
+   sur les propriétés que Bootstrap impose).
+   ══════════════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+/* ── Tokens (valeurs corrigées AA, cf. app/globals.css) ── */
+body.myaccount {
+  --provi-accent:        #6960EA;
+  --provi-accent-dark:   #5348d5;
+  --provi-accent-darker: #4339c4;
+  --provi-accent-light:  #EDE9FE;
+  --provi-content:       #f8f4fb;
+  --provi-surface:       #ffffff;
+  --provi-text:          #1F1F2E;
+  --provi-soft:          #686E7C;
+  --provi-muted:         #9CA3AF;
+  --provi-border:        #ede8f5;
+  --provi-border-light:  #f5f2f9;
+  --provi-warning:       #eb7413;
+  --provi-warning-light: #fdf2e9;
+  --provi-warning-dark:  #b85a0a;
+  --provi-shadow-card:   0 2px 4px -1px rgba(130, 120, 180, .18);
+  --provi-shadow-lift:   0 10px 25px -5px rgba(0, 0, 0, .1), 0 8px 10px -6px rgba(0, 0, 0, .1);
+  --provi-shadow-drop:   0 8px 32px rgba(0, 0, 0, .10);
+
+  font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important;
+  background: var(--provi-content) !important;
+  color: var(--provi-text);
+}
+
+/* ── Barre de navigation : blanche, bordure douce, actif en accent ──
+   (alternative « sombre » fournie en commentaire en bas de fichier si ton
+    logo est clair et invisible sur fond blanc.) */
+body.myaccount .navbar.navbar-inverse,
+body.myaccount .navbar.bg-inverse {
+  background: var(--provi-surface) !important;
+  border-bottom: 1px solid var(--provi-border);
+  box-shadow: var(--provi-shadow-card);
+  padding: .5rem 1.25rem;
+}
+body.myaccount .navbar .nav-link {
+  color: var(--provi-soft) !important;
+  font-size: 13.5px;
+  font-weight: 500;
+  border-radius: 8px;
+  padding: .45rem .8rem !important;
+  transition: background .15s, color .15s;
+}
+body.myaccount .navbar .nav-link:hover,
+body.myaccount .navbar .nav-link:focus {
+  color: var(--provi-accent-dark) !important;
+  background: var(--provi-accent-light);
+}
+body.myaccount .navbar .nav-item.active .nav-link {
+  color: var(--provi-accent-dark) !important;
+  font-weight: 600;
+}
+body.myaccount .navbar .nav-link .small { color: var(--provi-muted) !important; }
+
+/* Hamburger (mobile) : icône sombre sur fond blanc */
+body.myaccount .navbar-toggler { border-color: var(--provi-border); }
+body.myaccount .navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='%231F1F2E' stroke-width='2' stroke-linecap='round' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E") !important;
+}
+
+/* ── Menus déroulants ── */
+body.myaccount .dropdown-menu {
+  background: var(--provi-surface);
+  border: 1px solid var(--provi-border-light);
+  border-radius: 14px;
+  box-shadow: var(--provi-shadow-drop);
+  padding: 6px;
+  margin-top: 6px;
+}
+body.myaccount .dropdown-item {
+  border-radius: 8px;
+  padding: .5rem .7rem;
+  font-size: 13px;
+  color: var(--provi-text);
+}
+body.myaccount .dropdown-item:hover,
+body.myaccount .dropdown-item:focus {
+  background: var(--provi-accent-light);
+  color: var(--provi-accent-dark);
+}
+body.myaccount .dropdown-divider { border-top-color: var(--provi-border-light); }
+
+/* ── Conteneur & titres ── */
+body.myaccount .container { padding-top: 8px; padding-bottom: 40px; }
+body.myaccount .page-title h1,
+body.myaccount h1 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--provi-text);
+}
+
+/* ── Bandeau « fin de période d'essai » (note-warning) ── */
+body.myaccount .note.note-warning {
+  background: var(--provi-warning-light) !important;
+  border: 1px solid #f6dcc3 !important;
+  border-left: 4px solid var(--provi-warning) !important;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: none !important;
+}
+body.myaccount .note.note-warning h4 {
+  color: var(--provi-warning-dark) !important;
+  font-size: 14.5px;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+
+/* ── Cartes (portlets) ── */
+body.myaccount .portlet.light {
+  background: var(--provi-surface) !important;
+  border: 1px solid var(--provi-border-light) !important;
+  border-radius: 16px !important;
+  box-shadow: var(--provi-shadow-card) !important;
+  padding: 22px 24px !important;
+  margin-bottom: 24px;
+}
+body.myaccount .portlet.light .portlet-title {
+  border-bottom: 1px solid var(--provi-border-light);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  min-height: 0;
+}
+body.myaccount .portlet .caption-subject {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+/* L'accent vert d'origine (icône + libellé) → violet de marque */
+body.myaccount .font-green-sharp { color: var(--provi-accent-dark) !important; }
+body.myaccount .portlet-body { font-size: 13px; color: var(--provi-soft); }
+body.myaccount .portlet-body h2 {
+  color: var(--provi-accent-dark) !important;
+  font-weight: 700;
+  font-size: 28px;
+  margin: 0;
+}
+
+/* ── Boutons ──
+   Secondaire (soft) = défaut des cartes ; principal (solide) = CTA. */
+body.myaccount .btn {
+  display: inline-block;
+  background: var(--provi-accent-light) !important;
+  color: var(--provi-accent-dark) !important;
+  border: none !important;
+  border-radius: 10px !important;
+  padding: 9px 16px !important;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none !important;
+  transition: transform .12s, box-shadow .12s, background .12s, color .12s;
+}
+body.myaccount .btn:hover,
+body.myaccount .btn:focus {
+  background: var(--provi-accent-dark) !important;
+  color: #fff !important;
+  transform: translateY(-1px);
+  box-shadow: var(--provi-shadow-lift);
+}
+/* Principal — défini APRÈS .btn pour gagner à spécificité égale */
+body.myaccount .btn.btn-primary {
+  background: var(--provi-accent-dark) !important;
+  color: #fff !important;
+  box-shadow: var(--provi-shadow-card);
+}
+body.myaccount .btn.btn-primary:hover,
+body.myaccount .btn.btn-primary:focus {
+  background: var(--provi-accent-darker) !important;
+  color: #fff !important;
+  transform: translateY(-1px);
+  box-shadow: var(--provi-shadow-lift);
+}
+
+/* ── Liens dans le contenu (hors boutons) ── */
+body.myaccount .portlet-body a:not(.btn),
+body.myaccount .note a:not(.btn) {
+  color: var(--provi-accent-dark);
+  font-weight: 500;
+}
+body.myaccount .portlet-body a:not(.btn):hover { text-decoration: underline; }
+
+/* ── Écran d'attente de déploiement ── */
+body.myaccount #waitMask font { color: var(--provi-soft) !important; }
+
+/* ══════════════════════════════════════════════════════════════════════
+   ALTERNATIVE — navbar SOMBRE (à décommenter SI ton logo est clair et
+   disparaît sur fond blanc). Remplace la navbar blanche ci-dessus.
+   ──────────────────────────────────────────────────────────────────────
+   body.myaccount .navbar.navbar-inverse,
+   body.myaccount .navbar.bg-inverse {
+     background: #26233b !important;
+     border-bottom: none;
+     box-shadow: var(--provi-shadow-card);
+   }
+   body.myaccount .navbar .nav-link { color: #cfcce6 !important; }
+   body.myaccount .navbar .nav-link:hover,
+   body.myaccount .navbar .nav-link:focus,
+   body.myaccount .navbar .nav-item.active .nav-link {
+     color: #fff !important;
+     background: rgba(255,255,255,.08);
+   }
+   body.myaccount .navbar .nav-link .small { color: #9b97bd !important; }
+   ══════════════════════════════════════════════════════════════════════ */
