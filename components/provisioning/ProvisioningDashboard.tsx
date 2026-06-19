@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import Icon from "@/components/ui/Icon";
+import Icon, { type IconName } from "@/components/ui/Icon";
 import DeployingView from "@/components/provisioning/DeployingView";
 import { isValidJob } from "@/lib/instances/jobs";
 
 type Props = {
   /** Raison sociale, affichée dans le message de succès. */
   companyName: string;
-  /** URL de l'espace une fois déployé (bouton « Accéder à mon espace »). */
+  /** URL de l'instance déployée (fallback de `status.url`) — bouton « Accéder à mon ERP ». */
   accessUrl: string;
+  /** URL du portail client (gestion des abonnements) — bouton « Accéder à mon espace ». */
+  portalUrl: string;
   /** Réf de l'instance à suivre — clé du polling de statut. */
   instanceRef: string;
   /**
@@ -54,6 +56,7 @@ type ProvisioningStatus = {
 export default function ProvisioningDashboard({
   companyName,
   accessUrl,
+  portalUrl,
   instanceRef,
   job = null,
 }: Props) {
@@ -118,7 +121,8 @@ export default function ProvisioningDashboard({
     return (
       <ProvisioningSuccess
         companyName={companyName}
-        url={status?.url ?? accessUrl}
+        erpUrl={status?.url ?? accessUrl}
+        portalUrl={portalUrl}
       />
     );
   }
@@ -126,13 +130,20 @@ export default function ProvisioningDashboard({
   return <DeployingView companyName={companyName} />;
 }
 
-/** Écran de succès : ERP prêt + rappel des identifiants + CTA d'accès. */
+/**
+ * Écran de succès : ERP prêt + **deux accès clairement distincts** — l'ERP
+ * (l'outil métier au quotidien) et l'espace client Provi (gestion des
+ * abonnements). Chaque carte rappelle son identifiant de connexion propre, pour
+ * que l'utilisateur ne confonde pas les deux.
+ */
 function ProvisioningSuccess({
   companyName,
-  url,
+  erpUrl,
+  portalUrl,
 }: {
   companyName: string;
-  url: string;
+  erpUrl: string;
+  portalUrl: string;
 }) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
@@ -147,7 +158,7 @@ function ProvisioningSuccess({
       />
 
       <p className="sr-only" role="status" aria-live="polite">
-        Déploiement terminé. Votre espace est prêt.
+        Déploiement terminé. Votre ERP est prêt.
       </p>
 
       <div className="relative z-10 mb-8 flex h-20 w-20 items-center justify-center rounded-2xl border border-success/10 bg-success-light text-success">
@@ -163,30 +174,105 @@ function ProvisioningSuccess({
       </h1>
       <p className="z-10 mb-10 max-w-[460px] text-center text-[13.5px] leading-relaxed text-soft">
         L&apos;ERP de votre entreprise <b className="text-text">{companyName}</b> a
-        été déployé et configuré avec succès. Vous pouvez dès à présent démarrer
-        votre activité.
+        été déployé avec succès. Vous disposez de{" "}
+        <b className="text-text">deux accès</b> distincts :
       </p>
 
-      <div className="z-10 flex w-full max-w-[400px] flex-col gap-4">
-        {/* Le login de l'admin de l'instance est TOUJOURS `admin` (posé par
-            Sell Your SaaS) ; le mot de passe est celui choisi au questionnaire. */}
-        <p className="text-center text-[13px] leading-relaxed text-soft">
-          Connectez-vous avec l&apos;identifiant{" "}
-          <b className="text-text">admin</b> et le mot de passe que vous avez
-          choisi lors de votre inscription.
-        </p>
-        <a
-          href={url}
-          className="group flex h-[52px] w-full items-center justify-center gap-2.5 rounded-xl bg-accent-dark text-[14px] font-bold text-white shadow-card transition-all hover:-translate-y-px hover:shadow-lift"
-        >
-          Accéder à mon espace
-          <Icon
-            name="arrow-right"
-            size={20}
-            className="transition-transform group-hover:translate-x-1"
-          />
-        </a>
+      <div className="z-10 grid w-full max-w-[460px] gap-4 text-left">
+        {/* 1. L'ERP — l'outil métier au quotidien (accès principal, mis en avant). */}
+        <AccessCard
+          highlighted
+          icon="grid"
+          title="Votre ERP"
+          description="Votre logiciel de gestion au quotidien : clients, devis, factures, stock…"
+          login={
+            <>
+              Identifiant <b className="text-text">admin</b> + le mot de passe
+              choisi à l&apos;inscription.
+            </>
+          }
+          href={erpUrl}
+          cta="Accéder à mon ERP"
+        />
+
+        {/* 2. L'espace client Provi — gestion des abonnements (accès secondaire). */}
+        <AccessCard
+          icon="receipt"
+          title="Mon espace client Provi"
+          description="Vos abonnements : factures, options, support, nouvelles instances ou résiliation."
+          login={
+            <>
+              Connexion avec votre <b className="text-text">e-mail</b> + le même
+              mot de passe.
+            </>
+          }
+          href={portalUrl}
+          cta="Accéder à mon espace"
+        />
       </div>
+    </div>
+  );
+}
+
+/**
+ * Carte d'un accès (ERP ou espace client) : icône, titre, rôle, identifiant de
+ * connexion et bouton. `highlighted` met l'accès principal (l'ERP) en avant
+ * (bouton plein) ; l'autre est en bouton « outline » pour hiérarchiser.
+ */
+function AccessCard({
+  icon,
+  title,
+  description,
+  login,
+  href,
+  cta,
+  highlighted = false,
+}: {
+  icon: IconName;
+  title: string;
+  description: string;
+  login: ReactNode;
+  href: string;
+  cta: string;
+  highlighted?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-2xl border p-5 ${
+        highlighted
+          ? "border-accent/20 bg-content"
+          : "border-border-light bg-surface"
+      }`}
+    >
+      <div className="mb-2 flex items-center gap-2.5">
+        <span
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+            highlighted
+              ? "bg-accent text-white"
+              : "bg-accent-light text-accent-dark"
+          }`}
+        >
+          <Icon name={icon} size={18} />
+        </span>
+        <h2 className="text-[15px] font-bold text-text">{title}</h2>
+      </div>
+      <p className="mb-1.5 text-[13px] leading-relaxed text-soft">{description}</p>
+      <p className="mb-4 text-[12px] leading-relaxed text-muted">{login}</p>
+      <a
+        href={href}
+        className={`group flex h-11 w-full items-center justify-center gap-2 rounded-xl text-[13.5px] font-bold transition-all ${
+          highlighted
+            ? "bg-accent-dark text-white shadow-card hover:-translate-y-px hover:shadow-lift"
+            : "border border-border text-text hover:bg-content"
+        }`}
+      >
+        {cta}
+        <Icon
+          name="arrow-right"
+          size={18}
+          className="transition-transform group-hover:translate-x-1"
+        />
+      </a>
     </div>
   );
 }

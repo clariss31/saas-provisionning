@@ -23,8 +23,10 @@ export default async function ProvisioningPage({
 }) {
   const { ref } = await params;
   const { company, job } = await searchParams;
-  // URL d'accès à l'espace (lue côté serveur, hors code versionné).
+  // URL de l'instance déployée (ERP) et URL du portail client (abonnements),
+  // lues côté serveur (hors code versionné), puis passées au composant client.
   const accessUrl = process.env.MASTER_INSTANCE_URL ?? "#";
+  const portalUrl = process.env.SELLYOURSAAS_ACCOUNT_URL ?? "#";
 
   return (
     <div className="min-h-full bg-content">
@@ -33,6 +35,7 @@ export default async function ProvisioningPage({
           instanceRef={ref}
           companyName={company?.trim() || "votre entreprise"}
           accessUrl={accessUrl}
+          portalUrl={portalUrl}
           job={job ?? null}
         />
       </div>
