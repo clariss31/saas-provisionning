@@ -7,7 +7,7 @@
 #
 # Si « build-test » échoue, « deploy » n'est pas exécuté : la production reste
 # intacte. Le déploiement n'a donc lieu que sur du code qui compile et passe les
-# tests (dont le toggle Tarifs et la vérif de sous-domaine — cf. CLAUDE.md).
+# tests.
 
 name: Déploiement production
 
