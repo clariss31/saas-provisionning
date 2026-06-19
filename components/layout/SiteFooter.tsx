@@ -18,8 +18,11 @@ const COLUMNS: FooterColumn[] = [
   {
     title: "Légal & Contact",
     links: [
-      { label: "CGU", href: "/cgu" },
-      { label: "Confidentialité", href: "/confidentialite" },
+      { label: "Mentions légales", href: "/mentions-legales" },
+      {
+        label: "Politique de confidentialité",
+        href: "/politique-de-confidentialite",
+      },
       { label: "Contact", href: "/contact" },
     ],
   },

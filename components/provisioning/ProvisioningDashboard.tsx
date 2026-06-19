@@ -201,11 +201,11 @@ export default function ProvisioningDashboard({
       <div className="z-10 mb-12 w-full max-w-[480px]">
         <div className="mb-2.5 flex items-end justify-between">
           <span
-            className={`text-[11px] font-semibold uppercase tracking-wider ${done ? "text-success" : "text-accent-dark"}`}
+            className={`text-[11px] font-semibold uppercase tracking-wider ${done ? "text-success-dark" : "text-accent-dark"}`}
           >
             {done ? "Déploiement terminé" : "Déploiement en cours"}
           </span>
-          <span className={`text-[12px] font-bold ${done ? "text-success" : "text-soft"}`}>
+          <span className={`text-[12px] font-bold ${done ? "text-success-dark" : "text-soft"}`}>
             {percent}%
           </span>
         </div>

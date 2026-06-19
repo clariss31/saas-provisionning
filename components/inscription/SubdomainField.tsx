@@ -142,7 +142,7 @@ export default function SubdomainField({
         )}
 
         {status === "available" && (
-          <span className="inline-flex items-center gap-2 rounded-lg border border-success/15 bg-success-light px-3 py-1.5 text-[12px] font-medium text-success">
+          <span className="inline-flex items-center gap-2 rounded-lg border border-success/15 bg-success-light px-3 py-1.5 text-[12px] font-medium text-success-dark">
             <Icon name="check-circle" size={16} />
             <span>
               {subdomain}.{domain}

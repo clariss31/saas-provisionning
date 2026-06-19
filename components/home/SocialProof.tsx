@@ -35,6 +35,12 @@ const BRANDS: Brand[] = [
  * opacité** (pas d'effet niveaux-de-gris/survol : on évite tout signal porté
  * uniquement par la couleur ou le survol, et on préserve la lisibilité). Chaque
  * logo porte un `alt` (nom de la marque) et est servi optimisé via `next/image`.
+ *
+ * Deux mises en page selon la largeur :
+ *  - **≥ sm** : grille centrée qui se replie sur plusieurs lignes (statique) ;
+ *  - **mobile** : bande à défilement horizontal automatique (marquee CSS), pour
+ *    éviter une longue pile verticale. La piste est dupliquée pour une boucle
+ *    continue ; le second jeu est masqué aux lecteurs d'écran (`aria-hidden`).
  */
 export default function SocialProof() {
   return (
@@ -46,7 +52,9 @@ export default function SocialProof() {
         <p className="mb-10 text-center text-[11px] font-bold tracking-[0.6px] text-soft uppercase">
           Ils nous font confiance
         </p>
-        <ul className="flex flex-wrap items-center justify-center gap-x-12 gap-y-8">
+
+        {/* ≥ sm : grille centrée statique */}
+        <ul className="hidden flex-wrap items-center justify-center gap-x-12 gap-y-8 sm:flex">
           {BRANDS.map((brand) => (
             <li key={brand.name} className="flex items-center">
               <Image
@@ -57,6 +65,32 @@ export default function SocialProof() {
             </li>
           ))}
         </ul>
+
+        {/* Mobile : défilement horizontal automatique */}
+        <div className="social-marquee-viewport w-full overflow-hidden sm:hidden">
+          <ul className="social-marquee-track flex w-max items-center">
+            {/* Premier jeu : logos réels (lus par les lecteurs d'écran). */}
+            {BRANDS.map((brand) => (
+              <li key={brand.name} className="mr-12 flex shrink-0 items-center">
+                <Image
+                  src={brand.logo}
+                  alt={brand.name}
+                  className={`${brand.heightClass} w-auto`}
+                />
+              </li>
+            ))}
+            {/* Second jeu : copie décorative pour une boucle continue. */}
+            {BRANDS.map((brand) => (
+              <li
+                key={`dup-${brand.name}`}
+                aria-hidden="true"
+                className="mr-12 flex shrink-0 items-center"
+              >
+                <Image src={brand.logo} alt="" className={`${brand.heightClass} w-auto`} />
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </section>
   );

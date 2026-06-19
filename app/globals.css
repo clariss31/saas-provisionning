@@ -45,6 +45,11 @@
   /* ── Palette sémantique (chaque couleur a sa variante "light") ── */
   --color-success:       #1d9e75;
   --color-success-light: #e6f7f2;
+  /* Vert foncé : réservé au texte vert sur fond clair (encadré « sous-domaine
+     disponible »). Le vert vif #1d9e75 ne plafonne qu'à ~3.1:1 sur
+     `success-light` ; cette teinte atteint ~4.6:1 (WCAG AA) avec un
+     assombrissement minime, sans toucher au vert décoratif (jauge, badges). */
+  --color-success-dark:  #177D5C;
   --color-warning:       #eb7413;
   --color-warning-light: #fdf2e9;
   --color-info:          #378add;
@@ -114,6 +119,9 @@
 
   --color-success:       #34D399;
   --color-success-light: rgba(52, 211, 153, 0.1);
+  /* En mode sombre, le texte garde le vert clair existant (fond translucide
+     sombre) : contraste déjà suffisant, pas de régression. */
+  --color-success-dark:  #34D399;
   --color-warning:       #FB923C;
   --color-warning-light: rgba(251, 146, 60, 0.1);
   --color-info:          #38BDF8;
@@ -163,6 +171,7 @@
 
   --color-success:       var(--color-success);
   --color-success-light: var(--color-success-light);
+  --color-success-dark:  var(--color-success-dark);
   --color-warning:       var(--color-warning);
   --color-warning-light: var(--color-warning-light);
   --color-info:          var(--color-info);
@@ -272,6 +281,43 @@ h1, h2, h3, h4, h5, h6 { font-weight: 600; }
 
 .animate-menu-drawer {
   animation: menu-slide-in-right 0.25s ease-out;
+}
+
+/* ── Preuve sociale (mobile) : défilement horizontal automatique ──
+   La piste contient deux copies identiques des logos ; la translation de -50 %
+   rejoue la première copie sans rupture (chaque logo porte une marge droite
+   uniforme, donc la « période » du défilement est régulière).
+   La règle « prefers-reduced-motion » plus bas fige l'animation ; on rebascule
+   alors le bandeau en défilement manuel (overflow-x:auto) pour que tous les
+   logos restent atteignables. */
+@keyframes social-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.social-marquee-track {
+  animation: social-marquee 28s linear infinite;
+}
+
+/* Barre de défilement masquée (le bandeau défile seul). */
+.social-marquee-viewport {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* anciens Edge/IE */
+}
+
+.social-marquee-viewport::-webkit-scrollbar {
+  display: none; /* Chrome / Safari */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Animation neutralisée : on laisse l'utilisateur faire défiler à la main. */
+  .social-marquee-viewport {
+    overflow-x: auto;
+  }
 }
 
 /* Respect de la préférence « animations réduites » (accessibilité). */

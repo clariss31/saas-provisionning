@@ -322,7 +322,9 @@ export default function InscriptionForm({ domain, job, billing }: Props) {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="vous@entreprise.fr"
                   aria-invalid={email.length > 0 && !emailValid ? true : undefined}
-                  aria-describedby="email-hint"
+                  aria-describedby={
+                    email.length > 0 && !emailValid ? "email-hint" : undefined
+                  }
                   className={`${MODERN_CONTROL} ${
                     email.length > 0 && !emailValid
                       ? "border-danger focus:border-danger"
@@ -489,7 +491,7 @@ function Stepper({ step }: { step: number }) {
               )}
               <div
                 aria-current={isActive ? "step" : undefined}
-                className={`flex flex-col items-center gap-2 ${isActive || isDone ? "" : "opacity-50"}`}
+                className="flex flex-col items-center gap-2"
               >
                 <span
                   className={`flex h-9 w-9 items-center justify-center rounded-full border-2 bg-surface ${
@@ -497,7 +499,7 @@ function Stepper({ step }: { step: number }) {
                       ? "border-accent ring-4 ring-accent/10"
                       : isDone
                         ? "border-accent"
-                        : "border-border"
+                        : "border-muted"
                   }`}
                 >
                   {isDone ? (
@@ -505,16 +507,12 @@ function Stepper({ step }: { step: number }) {
                   ) : isActive ? (
                     <span className="h-2.5 w-2.5 rounded-full bg-accent" aria-hidden="true" />
                   ) : (
-                    <span className="text-[14px] font-bold text-muted">{n}</span>
+                    <span className="text-[14px] font-bold text-soft">{n}</span>
                   )}
                 </span>
                 <span
                   className={`text-[11px] uppercase tracking-wider ${
-                    isActive
-                      ? "font-bold text-accent-dark"
-                      : isDone
-                        ? "font-medium text-soft"
-                        : "font-medium text-muted"
+                    isActive ? "font-bold text-accent-dark" : "font-medium text-soft"
                   }`}
                 >
                   {label}
