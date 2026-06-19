@@ -10,10 +10,12 @@ import { sendMail } from "@/lib/email/mailjet";
 export async function sendInstanceReadyEmail(params: {
   to: string;
   companyName: string;
-  /** URL d'accès à l'espace déployé. */
-  url: string;
+  /** URL de l'instance déployée (l'ERP, l'outil métier au quotidien). */
+  erpUrl: string;
+  /** URL du portail client Provi (gestion des abonnements). */
+  portalUrl: string;
 }): Promise<void> {
-  const { to, companyName, url } = params;
+  const { to, companyName, erpUrl, portalUrl } = params;
 
   await sendMail({
     to,
@@ -22,13 +24,16 @@ export async function sendInstanceReadyEmail(params: {
       "Bonjour,",
       "",
       `L'ERP de votre entreprise « ${companyName} » a été déployé et configuré avec succès.`,
-      "Vous pouvez dès à présent démarrer votre activité.",
+      "Vous disposez désormais de DEUX accès distincts :",
       "",
-      `Accéder à votre espace : ${url}`,
+      "1) VOTRE ERP — votre logiciel de gestion au quotidien (clients, devis, factures, stock…).",
+      `   Accès : ${erpUrl}`,
+      "   Connexion : identifiant « admin » + le mot de passe choisi à l'inscription.",
       "",
-      "Vos identifiants de connexion :",
-      "  • Identifiant : admin",
-      "  • Mot de passe : celui que vous avez choisi lors de votre inscription.",
+      "2) VOTRE ESPACE CLIENT PROVI — la gestion de vos abonnements : factures,",
+      "   options, support, nouvelles instances ou résiliation de votre compte.",
+      `   Accès : ${portalUrl}`,
+      "   Connexion : votre adresse e-mail + le même mot de passe.",
       "",
       "À très vite,",
       "L'équipe Provi",

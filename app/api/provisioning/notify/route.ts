@@ -33,8 +33,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     await sendInstanceReadyEmail({
       to: notification.to,
       companyName: notification.companyName,
-      // Lien d'accès cohérent avec le bouton du tableau de bord.
-      url: process.env.MASTER_INSTANCE_URL ?? notification.url,
+      // ERP = l'instance déployée (cohérent avec le bouton « Accéder à mon ERP »).
+      erpUrl: process.env.MASTER_INSTANCE_URL ?? notification.url,
+      // Espace client = le portail SellYourSaas (gestion des abonnements).
+      portalUrl: process.env.SELLYOURSAAS_ACCOUNT_URL ?? notification.url,
     });
   } catch (error) {
     console.error("[provisioning] échec de l'e-mail « prêt » :", error);
