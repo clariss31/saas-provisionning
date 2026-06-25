@@ -32,6 +32,13 @@ type InscriptionBody = {
   password?: unknown;
   job?: unknown;
   billing?: unknown;
+  // Données SIRENE auto-remplies (optionnelles ; non encore propagées — Phase 2).
+  siren?: unknown;
+  siret?: unknown;
+  address?: unknown;
+  zip?: unknown;
+  town?: unknown;
+  naf?: unknown;
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -60,6 +67,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const companyName = asString(body.companyName).trim();
+  // Nom du gérant : désormais **déduit** côté client de l'API SIRENE (plus de
+  // saisie obligatoire). On l'accepte tel quel, vide compris.
   const managerName = asString(body.managerName).trim();
   const email = asString(body.email).trim().toLowerCase();
   const password = asString(body.password);
@@ -67,11 +76,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const vat = asString(body.vat);
   const job = asString(body.job) || undefined;
   const billing = asString(body.billing) || undefined;
+  // Données SIRENE : transmises à la couche métier (usage en Phase 2).
+  const siren = asString(body.siren).trim();
+  const siret = asString(body.siret).trim();
+  const address = asString(body.address).trim();
+  const zip = asString(body.zip).trim();
+  const town = asString(body.town).trim();
+  const naf = asString(body.naf).trim();
 
   // --- Validation serveur ---------------------------------------------------
-  if (managerName.length < 2) {
-    return NextResponse.json({ error: "Le nom du gérant est requis." }, { status: 400 });
-  }
   if (email.length > 254 || !EMAIL_RE.test(email)) {
     return NextResponse.json({ error: "Adresse e-mail invalide." }, { status: 400 });
   }
@@ -112,6 +125,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       vatLiable: vat === "oui",
       job,
       billing,
+      siren,
+      siret,
+      address,
+      zip,
+      town,
+      naf,
     });
 
     return NextResponse.json({

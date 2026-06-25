@@ -2,7 +2,7 @@ import { slugify, validateSubdomain, SUBDOMAIN_LIMITS } from "./subdomain";
 
 /**
  * Tests unitaires de la dérivation/validation du sous-domaine (US 5.2, volet
- * logique pur). Le comportement côté UI est couvert par `SubdomainField.test.tsx`.
+ * logique pur). Le comportement côté UI est couvert par `CompanySearchField.test.tsx`.
  */
 describe("slugify", () => {
   it("met en minuscules et remplace les espaces par des tirets", () => {
