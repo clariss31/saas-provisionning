@@ -19,6 +19,13 @@ Validate that any new feature fits the documented perimeter. If a request expand
 
 Mandatory unit tests (Jest + React Testing Library): the Tarifs toggle (US 4.2) and the subdomain availability check (US 5.2).
 
+# Vérification (typecheck / build / tests)
+
+Ne **pas** lancer `tsc`, `next build` ni la suite de tests en local : la
+vérification de types et le build sont exécutés **sur Git (CI / GitHub Actions)**.
+Se contenter d'éditer le code proprement ; ne pas proposer de commande de
+vérification non sollicitée.
+
 # Qualité, performance et accessibilité
 
 Ces règles s'appliquent à tout code produit dans ce projet.

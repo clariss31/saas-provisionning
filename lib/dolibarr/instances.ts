@@ -24,9 +24,12 @@ export type CreateInstanceInput = {
   companyName: string;
   /** Sous-domaine déjà slugifié et vérifié disponible. */
   subdomain: string;
-  /** Nom complet du gérant (admin de l'instance). */
+  /** Nom complet du gérant (utilisateur principal de l'instance). */
   managerName: string;
-  /** E-mail de l'admin (login + contact). */
+  /**
+   * E-mail du client : sert d'identité à l'inscription SYS **et** de login
+   * Dolibarr sur l'instance (posé par le « SQL après déploiement » du Package).
+   */
   email: string;
   /**
    * Mot de passe admin **en clair** (Option B). Transmis à Sell Your SaaS pour
@@ -180,6 +183,11 @@ export async function createInstance(
   //  - `password`/`password2` EN CLAIR (Option B) — jamais journalisés ni renvoyés.
   const form = new URLSearchParams({
     token,
+    // ⚠️ `register_instance.php` valide CE champ comme une **adresse e-mail** et
+    // s'en sert d'identité SYS : y mettre un login « prenom.nom » est refusé
+    // (« Email address … is incorrect »). On y met donc l'e-mail. Le login
+    // Dolibarr réel de l'instance est posé séparément par le « SQL après
+    // déploiement » du Package (cf. utilisateur « clienttemplate »).
     username: input.email,
     orgName: input.companyName,
     phone: "",

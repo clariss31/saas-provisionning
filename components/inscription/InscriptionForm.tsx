@@ -321,7 +321,7 @@ export default function InscriptionForm({ domain, job, billing }: Props) {
               <StepHeader
                 headingRef={headingRef}
                 title="Vos identifiants"
-                description="Créez l'accès administrateur de votre future instance."
+                description="Choisissez vos identifiants de connexion à votre future instance."
               />
 
               <ModernField id="email" label="Adresse e-mail" invalid={email.length > 0 && !emailValid}>
