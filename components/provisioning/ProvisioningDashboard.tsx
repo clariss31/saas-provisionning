@@ -312,7 +312,7 @@ function ProvisioningError({ job }: { job?: string | null }) {
 }
 
 /**
- * Écran affiché si la réf de suivi est inconnue (ex. serveur redémarré en mock).
+ * Écran affiché si la réf de suivi est inconnue (ex. contrat introuvable côté Maître).
  *
  * Le lien de reprise dépend du contexte : un métier devant **obligatoirement**
  * être sélectionné, on ne renvoie jamais vers `/inscription` nu. Si le métier

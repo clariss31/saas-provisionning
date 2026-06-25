@@ -20,8 +20,7 @@ export type SubdomainCheckResponse = {
  * disponibilité du sous-domaine dérivé d'une raison sociale (US 5.2).
  *
  * Étapes : on slugifie côté serveur (autorité), on valide le format, puis on
- * interroge le Dolibarr Maître via la couche isolée `lib/dolibarr` (en mode
- * `mock` tant que l'infra n'est pas branchée).
+ * interroge le Dolibarr Maître via la couche isolée `lib/dolibarr`.
  *
  * Le handler est dynamique (il lit la query) et n'est donc jamais mis en cache.
  */

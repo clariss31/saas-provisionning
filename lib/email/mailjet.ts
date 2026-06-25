@@ -7,8 +7,8 @@ import Mailjet from "node-mailjet";
  * importé que par du code serveur (Server Actions, Route Handlers). Réutilisé
  * par le formulaire de contact et l'e-mail de bienvenue à l'inscription.
  *
- * Sans clés configurées (`MJ_APIKEY_PUBLIC` / `MJ_APIKEY_PRIVATE`), l'envoi
- * retombe sur une simple journalisation côté serveur — pratique en développement.
+ * Les clés `MJ_APIKEY_PUBLIC` / `MJ_APIKEY_PRIVATE` sont requises : sans elles,
+ * l'envoi échoue explicitement (aucun repli silencieux).
  */
 
 /** Adresse expéditrice (doit être un expéditeur validé dans MailJet). */
@@ -27,20 +27,18 @@ export type OutgoingEmail = {
 };
 
 /**
- * Envoie un e-mail via MailJet, ou le journalise si les clés sont absentes.
+ * Envoie un e-mail via MailJet (clés API requises).
  *
- * @throws Error si MailJet est configuré mais répond en échec. Le détail
- *   technique est journalisé côté serveur, pas propagé à l'appelant.
+ * @throws Error si MailJet n'est pas configuré, ou s'il répond en échec. Le
+ *   détail technique est journalisé côté serveur, pas propagé à l'appelant.
  */
 export async function sendMail(email: OutgoingEmail): Promise<void> {
   const apiKey = process.env.MJ_APIKEY_PUBLIC;
   const apiSecret = process.env.MJ_APIKEY_PRIVATE;
 
   if (!apiKey || !apiSecret) {
-    console.info(
-      `[mail] (repli dev — MailJet non configuré) à ${email.to} — sujet « ${email.subject} »`,
-    );
-    return;
+    console.error("[mail] MailJet non configuré (MJ_APIKEY_PUBLIC / MJ_APIKEY_PRIVATE).");
+    throw new Error("Service e-mail non configuré.");
   }
 
   const mailjet = Mailjet.apiConnect(apiKey, apiSecret);

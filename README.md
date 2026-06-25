@@ -39,7 +39,7 @@ vraie instance ERP est provisionnée automatiquement et accessible en quelques m
 
 L'app **ne stocke aucune donnée** : le Dolibarr Maître est la source de vérité. Toute
 interaction passe par la couche isolée [lib/dolibarr/](lib/dolibarr/) (`client.ts` +
-`instances.ts`), avec une bascule **`mock`** (simulation locale) / **`live`** (API réelle).
+`instances.ts`), qui appelle réellement l'API REST du Maître et le portail Sell Your SaaS.
 
 ---
 
@@ -52,9 +52,9 @@ npm install
 npm run dev          # → http://localhost:3000 (rechargement à chaud)
 ```
 
-Par défaut, tout tourne en **mode simulé** (`DOLIBARR_MODE=mock`) : aucune dépendance
-réseau, aucune instance réelle créée, les e-mails sont journalisés en console. Idéal
-pour développer et tester l'UI sans toucher à la production.
+L'application appelle réellement le Dolibarr Maître et le portail Sell Your SaaS :
+renseignez d'abord la configuration dans `.env.local` (voir [Configuration](#configuration)).
+Les envois d'e-mails passent par MailJet et sont visibles dans son dashboard.
 
 Autres scripts :
 
@@ -68,14 +68,13 @@ npm run start        # serveur de production local
 ### Configuration
 
 Copier [.env.example](.env.example) vers `.env.local` (ignoré par git) et renseigner
-les valeurs. **Aucune n'est requise en mode `mock`.**
+les valeurs. Les variables Dolibarr / Sell Your SaaS sont **requises** pour le provisioning.
 
 | Variable | Rôle | Requise quand |
 |---|---|---|
-| `DOLIBARR_MODE` | `mock` (défaut) ou `live` | — |
-| `DOLIBARR_API_URL` / `DOLIBARR_API_KEY` | API REST du Maître + jeton `DOLAPIKEY` | mode `live` |
-| `SELLYOURSAAS_REGISTER_URL` / `SELLYOURSAAS_ACCOUNT_URL` | Portail de provisioning | mode `live` |
-| `INSTANCE_DOMAIN` | Domaine racine des instances | mode `live` |
+| `DOLIBARR_API_URL` / `DOLIBARR_API_KEY` | API REST du Maître + jeton `DOLAPIKEY` | provisioning |
+| `SELLYOURSAAS_REGISTER_URL` / `SELLYOURSAAS_ACCOUNT_URL` | Portail de provisioning | provisioning |
+| `INSTANCE_DOMAIN` | Domaine racine des instances | provisioning |
 | `MJ_APIKEY_PUBLIC` / `MJ_APIKEY_PRIVATE` / `MAIL_FROM` | Envoi MailJet | e-mails réels |
 
 > 🔒 **Aucun secret dans git.** Les clés vivent uniquement dans `.env.local` ; seul
@@ -114,7 +113,7 @@ saas-provisionning/
 │   └── layout.tsx
 ├── components/          # UI (home, inscription, provisioning, pricing, layout, ui…)
 ├── lib/
-│   ├── dolibarr/        # accès au Maître (client.ts, instances.ts) — bascule mock/live
+│   ├── dolibarr/        # accès au Maître (client.ts, instances.ts) — appels réels
 │   ├── instances/       # sous-domaine, mot de passe, e-mail « prêt »
 │   └── email/           # transport MailJet
 ├── public/              # assets statiques (next/image)

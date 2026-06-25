@@ -11,7 +11,7 @@ import { rateLimit, clientIp } from "@/lib/rate-limit";
  *
  * Flux : validation **serveur** (la route est joignable directement, jamais de
  * confiance au client) → création de l'instance via la couche `lib/dolibarr`
- * (en `mock` tant que l'infra n'est pas branchée).
+ * (appels réels au Dolibarr Maître / Sell Your SaaS).
  *
  * L'e-mail « votre ERP est prêt » n'est PAS envoyé par l'application : c'est
  * **SellYourSaas** qui l'émet côté serveur à la fin du déploiement (plus fiable
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Ce sous-domaine est déjà pris." }, { status: 409 });
     }
 
-    // --- Création de l'instance (mock tant que DOLIBARR_MODE !== "live") -----
+    // --- Création de l'instance (Dolibarr Maître / Sell Your SaaS) -----------
     const instance = await createInstance({
       companyName,
       subdomain,

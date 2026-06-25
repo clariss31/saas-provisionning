@@ -6,7 +6,7 @@ import { CONTACT_SUBJECTS, type ContactData } from "./validation";
  *
  * ⚠️ Module strictement serveur : il n'est importé que par la Server Action
  * (`app/(public)/contact/actions.ts`). Le destinataire réel n'est donc jamais
- * exposé au client. Le transport (MailJet ou repli log) est mutualisé dans
+ * exposé au client. Le transport MailJet est mutualisé dans
  * `lib/email/mailjet.ts`.
  */
 
@@ -26,7 +26,7 @@ const CONTACT_RECIPIENT = "clarisse.ferand@gmail.com";
  * mail) ; l'adresse de l'expéditeur (sans CR/LF, cf. validation) est placée en
  * `Reply-To` pour permettre une réponse directe.
  *
- * @throws Error si MailJet est configuré mais répond en échec.
+ * @throws Error si MailJet n'est pas configuré ou répond en échec.
  */
 export async function sendContactEmail(data: ContactData): Promise<void> {
   const subjectLabel = CONTACT_SUBJECTS[data.subject];

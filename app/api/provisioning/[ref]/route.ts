@@ -5,7 +5,7 @@ import { getInstanceStatus } from "@/lib/dolibarr/instances";
  * `GET /api/provisioning/[ref]` — état d'avancement du déploiement, interrogé en
  * **polling** par le tableau de bord (Lot 5).
  *
- * En mode mock, le statut progresse avec le temps (cf. `getInstanceStatus`) :
+ * Le statut est lu sur le contrat du Dolibarr Maître (cf. `getInstanceStatus`) :
  * `state` passe de `deploying` à `deployed`, et `step` de 1 à 4.
  *
  * Toujours dynamique (statut frais à chaque appel) : jamais mis en cache.

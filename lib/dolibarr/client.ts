@@ -5,27 +5,9 @@
  * jamais être importé par un composant client. Il n'est consommé que par la
  * couche métier (`lib/dolibarr/instances.ts`) et les Route Handlers.
  *
- * Deux modes, pilotés par la variable d'environnement `DOLIBARR_MODE` :
- *  - `mock` (défaut) : aucune dépendance réseau, réponses simulées — permet de
- *    développer et tester tout le front sans accès au serveur ;
- *  - `live` : appels HTTP réels vers l'API REST du Maître.
+ * Tous les appels sont des requêtes HTTP réelles vers l'API REST du Maître ;
+ * l'URL et la clé proviennent de `DOLIBARR_API_URL` / `DOLIBARR_API_KEY`.
  */
-
-/** Mode d'accès au Dolibarr Maître. */
-export type DolibarrMode = "mock" | "live";
-
-/**
- * Détermine le mode courant. Le mode `live` n'est retenu que si l'URL **et** la
- * clé sont effectivement présentes ; sinon on retombe en `mock` pour ne jamais
- * planter faute de configuration (ex. déploiement de démo, CI).
- */
-export function getDolibarrMode(): DolibarrMode {
-  const mode = process.env.DOLIBARR_MODE?.toLowerCase();
-  const configured = Boolean(
-    process.env.DOLIBARR_API_URL && process.env.DOLIBARR_API_KEY,
-  );
-  return mode === "live" && configured ? "live" : "mock";
-}
 
 /** Erreur normalisée remontée par le client (message + statut HTTP éventuel). */
 export class DolibarrError extends Error {
@@ -64,8 +46,6 @@ function buildUrl(path: string, query?: FetchOptions["query"]): string {
 
 /**
  * Effectue un appel authentifié à l'API REST Dolibarr (en-tête `DOLAPIKEY`).
- * À n'appeler qu'en mode `live` (la couche métier route vers la simulation en
- * mode `mock`).
  *
  * @throws {DolibarrError} si la configuration manque ou si la réponse est en
  *   échec ; le `status` HTTP est conservé pour permettre un traitement fin

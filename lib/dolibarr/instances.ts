@@ -3,14 +3,13 @@
  * une instance Dolibarr depuis l'application.
  *
  * Toute dépendance au Dolibarr Maître / Sell Your SaaS passe par ici : le reste
- * de l'app (Route Handlers, UI) n'appelle QUE ces fonctions. On peut ainsi :
- *  - développer/tester en mode `mock` (simulation en mémoire) ;
- *  - basculer en `live` (vrais appels REST) sans toucher au front.
+ * de l'app (Route Handlers, UI) n'appelle QUE ces fonctions. Tous les appels
+ * sont réels — API REST du Maître (lecture) et portail Sell Your SaaS (création).
  *
  * ⚠️ Module **strictement serveur** (il importe le client porteur du DOLAPIKEY).
  */
 
-import { DolibarrError, dolibarrFetch, getDolibarrMode } from "./client";
+import { DolibarrError, dolibarrFetch } from "./client";
 
 // ---------------------------------------------------------------------------
 // Types publics
@@ -103,140 +102,30 @@ export function serviceForJob(job: string | undefined): string {
 }
 
 // ---------------------------------------------------------------------------
-// Dispatch mock / live
-// ---------------------------------------------------------------------------
-
-/**
- * Indique si un sous-domaine est disponible sur le Maître.
- * @param subdomain Sous-domaine déjà slugifié (`[a-z0-9-]`).
- */
-export async function isSubdomainAvailable(subdomain: string): Promise<boolean> {
-  return getDolibarrMode() === "mock"
-    ? mockIsSubdomainAvailable(subdomain)
-    : liveIsSubdomainAvailable(subdomain);
-}
-
-/** Crée le client + le contrat porteur de l'instance, déclenchant le clonage SYS. */
-export async function createInstance(
-  input: CreateInstanceInput,
-): Promise<CreateInstanceResult> {
-  const mode = getDolibarrMode();
-  // Diagnostic serveur (terminal `npm run dev`) — aucune donnée sensible. Permet
-  // de vérifier que l'app est bien en `live` (sinon `mock` = rien n'atteint le Master).
-  console.info(
-    `[provisioning] createInstance: mode=${mode}` +
-      (mode === "live"
-        ? `, provision=${process.env.SELLYOURSAAS_PROVISION_MODE ?? "register"}`
-        : ""),
-  );
-  return mode === "mock"
-    ? mockCreateInstance(input)
-    : liveCreateInstance(input);
-}
-
-/**
- * Lit l'état d'avancement d'une instance.
- * @returns le statut, ou `null` si la référence est inconnue.
- */
-export async function getInstanceStatus(
-  ref: string,
-): Promise<InstanceStatus | null> {
-  return getDolibarrMode() === "mock"
-    ? mockGetInstanceStatus(ref)
-    : liveGetInstanceStatus(ref);
-}
-
-// ---------------------------------------------------------------------------
-// Implémentation MOCK (simulation en mémoire — mode `mock`)
-// ---------------------------------------------------------------------------
-
-/** Sous-domaines réservés / déjà pris en simulation (démo du cas « indisponible »). */
-const MOCK_TAKEN = new Set([
-  "demo",
-  "test",
-  "kaleido",
-  "admin",
-  "www",
-  "dolibarr",
-  "pichinov",
-]);
-
-/**
- * Instances simulées créées pendant la session de dev (ref → métadonnées).
- * État volontairement en mémoire : il est réinitialisé à chaque redémarrage du
- * serveur, ce qui convient au développement.
- */
-const mockInstances = new Map<
-  string,
-  {
-    subdomain: string;
-    createdAt: number;
-  }
->();
-
-function mockIsSubdomainAvailable(subdomain: string): boolean {
-  return !MOCK_TAKEN.has(subdomain);
-}
-
-function mockCreateInstance(input: CreateInstanceInput): CreateInstanceResult {
-  // Réf lisible et unique : préfixe contrat + horodatage en base 36.
-  const ref = `CT-${Date.now().toString(36).toUpperCase()}`;
-  mockInstances.set(ref, {
-    subdomain: input.subdomain,
-    createdAt: Date.now(),
-  });
-  // Le sous-domaine devient indisponible pour les vérifications suivantes.
-  MOCK_TAKEN.add(input.subdomain);
-  return {
-    ref,
-    subdomain: input.subdomain,
-    url: instanceUrl(input.subdomain),
-  };
-}
-
-function mockGetInstanceStatus(ref: string): InstanceStatus | null {
-  const record = mockInstances.get(ref);
-  if (!record) return null;
-
-  // Progression simulée : une étape franchie toutes les 3 s (≈ 9 s au total),
-  // pour donner à voir l'animation du tableau de bord en développement.
-  const elapsedSeconds = (Date.now() - record.createdAt) / 1000;
-  const step = Math.min(PROVISIONING_STEPS, Math.floor(elapsedSeconds / 3) + 1);
-  const state: InstanceState =
-    step >= PROVISIONING_STEPS ? "deployed" : "deploying";
-
-  return {
-    ref,
-    subdomain: record.subdomain,
-    url: instanceUrl(record.subdomain),
-    state,
-    step,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Implémentation LIVE (mode `live`)
+// Accès réel au Dolibarr Maître / Sell Your SaaS
 // ---------------------------------------------------------------------------
 //
 // Recon (cf. PLAN « Guideline §C/§D ») : Sell Your SaaS n'a PAS d'endpoint REST
 // de déploiement. Le déploiement est déclenché par le portail `myaccount` —
 // `register_instance.php` — qui appelle en interne `sellyoursaasRemoteAction('deployall')`.
-//  → `liveCreateInstance` POSTe donc le formulaire vers `register_instance.php`
+//  → `createInstance` POSTe donc le formulaire vers `register_instance.php`
 //    (SYS y crée tiers + contrat + extrafields + identifiants Unix/DB + déploie).
 //  → Le SUIVI et l'UNICITÉ se lisent via l'API REST (`/contracts`, en-tête DOLAPIKEY).
 //
-// ⚠️ `TODO(live)` = à valider une fois le serveur de déploiement (VPS) en place :
-// token anti-abus/CSRF de `register_instance.php`, format exact de sa réponse
-// (réf du contrat), et `tldid`. Tant que `SELLYOURSAAS_REGISTER_URL` est absente,
-// le mode live échoue explicitement (garder `DOLIBARR_MODE=mock`).
+// Tant que `SELLYOURSAAS_REGISTER_URL` est absente, la création échoue
+// explicitement (configuration de provisioning requise).
 // NB sécurité : `subdomain` est un slug `[a-z0-9-]` (cf. `lib/instances/subdomain.ts`),
 // son interpolation dans un `sqlfilters` est donc sûre.
 
 /**
+ * Indique si un sous-domaine est disponible sur le Maître.
+ *
  * Unicité du sous-domaine : SYS pose `ref_customer = <sous-domaine>.<tld>` sur le
  * contrat ; on cherche donc un contrat dont `ref_customer` commence par le slug.
+ *
+ * @param subdomain Sous-domaine déjà slugifié (`[a-z0-9-]`).
  */
-async function liveIsSubdomainAvailable(subdomain: string): Promise<boolean> {
+export async function isSubdomainAvailable(subdomain: string): Promise<boolean> {
   try {
     const results = await dolibarrFetch<unknown[]>("contracts", {
       query: { sqlfilters: `(t.ref_customer:like:'${subdomain}.%')`, limit: 1 },
@@ -249,20 +138,14 @@ async function liveIsSubdomainAvailable(subdomain: string): Promise<boolean> {
   }
 }
 
-async function liveCreateInstance(
+/** Crée le client + le contrat porteur de l'instance, déclenchant le clonage SYS. */
+export async function createInstance(
   input: CreateInstanceInput,
 ): Promise<CreateInstanceResult> {
-  // Mode de TEST (avant l'existence du serveur de déploiement) : on crée le tiers
-  // + le contrat via l'API REST, SANS déclencher le déploiement. Permet de vérifier
-  // que le tunnel parle bien au Master (auth, connectivité, mapping métier→service).
-  if (process.env.SELLYOURSAAS_PROVISION_MODE === "rest-createonly") {
-    return liveCreateInstanceRestOnly(input);
-  }
-
   const registerUrl = process.env.SELLYOURSAAS_REGISTER_URL;
   if (!registerUrl) {
     throw new DolibarrError(
-      "SELLYOURSAAS_REGISTER_URL non configurée : provisioning live indisponible.",
+      "SELLYOURSAAS_REGISTER_URL non configurée : provisioning indisponible.",
     );
   }
 
@@ -409,67 +292,10 @@ async function liveCreateInstance(
 }
 
 /**
- * Provisioning de TEST `rest-createonly` : crée le **tiers** + un **contrat** dans
- * le Master via l'API REST, **sans** déclencher le déploiement. Sert à valider la
- * connexion app→Master (auth, connectivité, mapping métier→service) avant que le
- * serveur de déploiement existe.
- *
- * ⚠️ Crée de **vraies données** (préfixées « [TEST Provi] ») dans le Master de prod
- * → à supprimer après le test. Le mot de passe n'est PAS stocké ici (inutile sans
- * déploiement). La réf de suivi est `ref_customer` (= sous-domaine.tld), cohérente
- * avec {@link liveGetInstanceStatus}.
+ * Lit l'état d'avancement d'une instance.
+ * @returns le statut, ou `null` si la référence est inconnue.
  */
-async function liveCreateInstanceRestOnly(
-  input: CreateInstanceInput,
-): Promise<CreateInstanceResult> {
-  const tld = process.env.INSTANCE_DOMAIN ?? "with1.pichinov.fr";
-  const serviceRef = serviceForJob(input.job);
-  const refCustomer = `${input.subdomain}.${tld}`;
-
-  // 1) Tiers (client). Préfixe « [TEST Provi] » pour repérer/nettoyer facilement.
-  //    `code_client: -1` = laisser Dolibarr générer le code (le Master impose un
-  //    code via le module `mod_codeclient_monkey`), comme `register_instance.php`.
-  const thirdpartyId = await dolibarrFetch<number>("thirdparties", {
-    method: "POST",
-    body: {
-      name: `[TEST Provi] ${input.companyName}`,
-      email: input.email,
-      client: 2,
-      code_client: -1,
-    },
-  });
-
-  // 2) Contrat rattaché — best-effort. Sur le Master MUTUALISÉ, la création de
-  //    contrat via l'API peut planter (un hook du module SYS se déclenche et
-  //    appelle une fonction système désactivée par OVH → 503 Varnish). Le but du
-  //    test (« le tiers apparaît dans le Master ») est déjà atteint au point 1 :
-  //    on ne fait donc PAS échouer le test si le contrat ne passe pas (il passera
-  //    sur le VPS, où ces fonctions sont disponibles).
-  try {
-    await dolibarrFetch<number>("contracts", {
-      method: "POST",
-      body: {
-        socid: thirdpartyId,
-        date_contrat: Math.floor(Date.now() / 1000),
-        ref_customer: refCustomer,
-        note_private: `[TEST Provi] metier=${serviceRef} sous-domaine=${input.subdomain} email=${input.email} — créé sans déploiement (mode rest-createonly).`,
-      },
-    });
-  } catch (error) {
-    console.warn(
-      `[provisioning] rest-createonly : tiers #${thirdpartyId} créé, mais contrat KO (attendu sur le mutualisé) :`,
-      error instanceof DolibarrError ? error.message : error,
-    );
-  }
-
-  return {
-    ref: refCustomer,
-    subdomain: input.subdomain,
-    url: instanceUrl(input.subdomain),
-  };
-}
-
-async function liveGetInstanceStatus(
+export async function getInstanceStatus(
   ref: string,
 ): Promise<InstanceStatus | null> {
   // Suivi : extrafield `options_deployment_status` du contrat (`processing` → `done`).
