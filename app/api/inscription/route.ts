@@ -13,8 +13,9 @@ import { rateLimit, clientIp } from "@/lib/rate-limit";
  * confiance au client) → création de l'instance via la couche `lib/dolibarr`
  * (en `mock` tant que l'infra n'est pas branchée).
  *
- * L'e-mail « Votre ERP est prêt » n'est PAS envoyé ici : il part à la **fin du
- * provisioning** (cf. `POST /api/provisioning/notify`).
+ * L'e-mail « votre ERP est prêt » n'est PAS envoyé par l'application : c'est
+ * **SellYourSaas** qui l'émet côté serveur à la fin du déploiement (plus fiable
+ * qu'un envoi déclenché depuis le navigateur du client).
  *
  * Le mot de passe arrive **en clair** (Option B, sur TLS) : Sell Your SaaS doit
  * pouvoir poser ce mot de passe exact sur l'admin de l'instance. On le valide,
