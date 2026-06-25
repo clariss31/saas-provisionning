@@ -11,10 +11,15 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/ui/Icon";
-import SubdomainField, { type SubdomainStatus } from "./SubdomainField";
+import CompanySearchField from "./CompanySearchField";
+import { type SubdomainStatus } from "./useSubdomainCheck";
 import ModernField, { MODERN_CONTROL } from "./ModernField";
 import DeployingView from "@/components/provisioning/DeployingView";
 import { scorePassword, PASSWORD_MIN_LENGTH } from "@/lib/instances/password";
+import {
+  mapNatureJuridiqueToLegalStatus,
+  type CompanyResult,
+} from "@/lib/instances/company";
 
 type Props = {
   /** Domaine racine des instances (fourni par le serveur, ex. « pichinov.fr »). */
@@ -70,7 +75,10 @@ export default function InscriptionForm({ domain, job, billing }: Props) {
   // Étape 1 — Identité
   const [companyName, setCompanyName] = useState("");
   const [subdomainStatus, setSubdomainStatus] = useState<SubdomainStatus>("idle");
-  const [managerName, setManagerName] = useState("");
+  // Entreprise sélectionnée dans le répertoire SIRENE (auto-remplissage). Le nom
+  // du gérant n'est plus saisi mais **déduit** de ses dirigeants.
+  const [company, setCompany] = useState<CompanyResult | null>(null);
+  const managerName = company?.manager ?? "";
 
   // Étape 2 — Fiscalité
   const [legalStatus, setLegalStatus] = useState("");
@@ -91,8 +99,9 @@ export default function InscriptionForm({ domain, job, billing }: Props) {
 
   const strength = scorePassword(password);
   const emailValid = EMAIL_RE.test(email);
-  const step1Valid =
-    subdomainStatus === "available" && managerName.trim().length >= 2;
+  // Le nom du gérant n'est plus requis (déduit de l'API) : seule la disponibilité
+  // du sous-domaine conditionne l'étape 1.
+  const step1Valid = subdomainStatus === "available";
   const step2Valid = legalStatus !== "" && vat !== "";
   const step3Valid = emailValid && strength.acceptable;
 
@@ -139,6 +148,14 @@ export default function InscriptionForm({ domain, job, billing }: Props) {
                   password,
                   job,
                   billing,
+                  // Données SIRENE (Phase 1 : transmises mais pas encore propagées
+                  // à l'instance déployée — cf. Phase 2).
+                  siren: company?.siren ?? "",
+                  siret: company?.siret ?? "",
+                  address: company?.address ?? "",
+                  zip: company?.zip ?? "",
+                  town: company?.town ?? "",
+                  naf: company?.naf ?? "",
                 }),
               });
               if (!res.ok) {
@@ -185,26 +202,18 @@ export default function InscriptionForm({ domain, job, billing }: Props) {
                 description="Comment vos clients vous connaissent-ils ? Ces informations apparaîtront sur vos factures."
               />
 
-              <SubdomainField
+              <CompanySearchField
                 value={companyName}
                 onValueChange={setCompanyName}
-                onResult={(status) => setSubdomainStatus(status)}
+                onSelect={(c) => {
+                  setCompany(c);
+                  // Pré-remplit le statut juridique (étape 2) si déductible.
+                  const mapped = mapNatureJuridiqueToLegalStatus(c.natureJuridique);
+                  if (mapped) setLegalStatus(mapped);
+                }}
+                onSubdomainStatus={setSubdomainStatus}
                 domain={domain}
               />
-
-              <ModernField id="managerName" label="Nom du gérant">
-                <input
-                  id="managerName"
-                  name="managerName"
-                  type="text"
-                  required
-                  autoComplete="name"
-                  value={managerName}
-                  onChange={(e) => setManagerName(e.target.value)}
-                  placeholder="Prénom Nom"
-                  className={`${MODERN_CONTROL} border-border focus:border-accent`}
-                />
-              </ModernField>
 
               <StepActions
                 back={

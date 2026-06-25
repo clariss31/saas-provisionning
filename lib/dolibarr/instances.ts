@@ -24,8 +24,11 @@ export type CreateInstanceInput = {
   companyName: string;
   /** Sous-domaine déjà slugifié et vérifié disponible. */
   subdomain: string;
-  /** Nom complet du gérant (utilisateur principal de l'instance). */
-  managerName: string;
+  /**
+   * Nom du gérant, désormais **déduit** des dirigeants SIRENE (optionnel : peut
+   * être vide si l'API n'a remonté aucun dirigeant personne physique).
+   */
+  managerName?: string;
   /**
    * E-mail du client : sert d'identité à l'inscription SYS **et** de login
    * Dolibarr sur l'instance (posé par le « SQL après déploiement » du Package).
@@ -45,6 +48,20 @@ export type CreateInstanceInput = {
   job?: string;
   /** Engagement choisi (`?billing=`) — contexte commercial. */
   billing?: string;
+  // --- Données SIRENE auto-remplies (Phase 1 : reçues mais NON encore propagées
+  //     vers `register_instance.php` / la conf de l'instance — cf. Phase 2). ---
+  /** N° SIREN (9 chiffres). */
+  siren?: string;
+  /** N° SIRET du siège (14 chiffres). */
+  siret?: string;
+  /** Adresse de la voie du siège. */
+  address?: string;
+  /** Code postal du siège. */
+  zip?: string;
+  /** Commune du siège. */
+  town?: string;
+  /** Code APE/NAF de l'activité principale. */
+  naf?: string;
 };
 
 /** Référence d'une instance créée + son URL finale. */
@@ -202,6 +219,18 @@ export async function createInstance(
     partnerkey: "",
     checkboxnonprofitorga: "",
     tz_string: "Europe/Paris",
+    // Données SIRENE (Phase 2) : enrichissent la fiche tiers du Maître et la conf
+    // de l'instance déployée. `register_instance.php` les pose sur le tiers
+    // (idprof1/2/3 + adresse) et stocke l'option TVA en extrafield du contrat.
+    address: input.address ?? "",
+    zip: input.zip ?? "",
+    town: input.town ?? "",
+    siren: input.siren ?? "",
+    siret: input.siret ?? "",
+    ape: input.naf ?? "",
+    // Assujettissement TVA de l'entreprise du client → pilote FACTURE_TVAOPTION
+    // de l'instance (distinct de la facturation DoliCloud). 1 = TVA, 0 = franchise.
+    vatoption: input.vatLiable ? "1" : "0",
   });
 
   // register_instance.php est SYNCHRONE : il déploie (~5 min) AVANT de répondre.
