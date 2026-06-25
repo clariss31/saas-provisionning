@@ -33,6 +33,15 @@ const POLL_MS = 2000;
  */
 const NOT_FOUND_LIMIT = 10;
 
+/**
+ * Délai (ms) au-delà duquel on cesse d'afficher le loader « indéterminé ». Si le
+ * déploiement n'a pas abouti dans ce temps (souci côté SYS, statut bloqué sur
+ * `processing`…), on bascule sur un écran « prend plus de temps que prévu » avec un
+ * accès direct à l'instance, au lieu de tourner en boucle indéfiniment. Le polling
+ * continue en tâche de fond : si l'état finit par passer `deployed`, le succès s'affiche.
+ */
+const DEPLOY_TIMEOUT_MS = 8 * 60_000;
+
 /** Statut renvoyé par `GET /api/provisioning/[ref]`. */
 type ProvisioningStatus = {
   state: "deploying" | "deployed" | "error";
@@ -62,6 +71,7 @@ export default function ProvisioningDashboard({
 }: Props) {
   const [status, setStatus] = useState<ProvisioningStatus | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
   const done = status?.state === "deployed";
   const errored = status?.state === "error";
 
@@ -100,6 +110,15 @@ export default function ProvisioningDashboard({
     };
   }, [done, errored, notFound, instanceRef]);
 
+  // Garde-fou anti-boucle : passé DEPLOY_TIMEOUT_MS sans état terminal, on bascule
+  // sur l'écran de repli. Le polling continue (mêmes dépendances ci-dessus) → si le
+  // déploiement aboutit ensuite, l'écran de succès prend automatiquement le relais.
+  useEffect(() => {
+    if (done || errored || notFound) return;
+    const id = setTimeout(() => setTimedOut(true), DEPLOY_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [done, errored, notFound]);
+
   // NB : l'e-mail « votre ERP est prêt » n'est plus envoyé par l'application.
   // Il est désormais émis **côté serveur** par SellYourSaas à la fin du
   // déploiement (cron de provisioning), ce qui est plus fiable : l'envoi ne
@@ -110,6 +129,15 @@ export default function ProvisioningDashboard({
   if (done) {
     return (
       <ProvisioningSuccess
+        companyName={companyName}
+        erpUrl={status?.url ?? accessUrl}
+        portalUrl={portalUrl}
+      />
+    );
+  }
+  if (timedOut) {
+    return (
+      <ProvisioningSlow
         companyName={companyName}
         erpUrl={status?.url ?? accessUrl}
         portalUrl={portalUrl}
@@ -177,8 +205,8 @@ function ProvisioningSuccess({
           description="Votre logiciel de gestion au quotidien : clients, devis, factures, stock…"
           login={
             <>
-              Identifiant <b className="text-text">admin </b> + le mot de passe
-              choisi à l&apos;inscription.
+              Connexion avec votre <b className="text-text">adresse e-mail</b> + le
+              mot de passe choisi à l&apos;inscription.
             </>
           }
           href={erpUrl}
@@ -263,6 +291,68 @@ function AccessCard({
           className="transition-transform group-hover:translate-x-1"
         />
       </a>
+    </div>
+  );
+}
+
+/**
+ * Écran de repli affiché quand le déploiement dépasse {@link DEPLOY_TIMEOUT_MS}
+ * sans aboutir. Souvent l'instance est déjà accessible alors que SYS reste bloqué
+ * sur `processing` : on propose donc un accès direct, tout en laissant le polling
+ * tourner en arrière-plan (si l'état passe `deployed`, l'écran de succès s'affiche).
+ */
+function ProvisioningSlow({
+  companyName,
+  erpUrl,
+  portalUrl,
+}: {
+  companyName: string;
+  erpUrl: string;
+  portalUrl: string;
+}) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
+
+  return (
+    <div className="flex flex-col items-center rounded-3xl border border-border-light bg-surface p-10 text-center shadow-card md:p-14">
+      <span className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-light text-accent-dark">
+        <Icon name="rocket" size={28} />
+      </span>
+      <h1
+        ref={headingRef}
+        tabIndex={-1}
+        className="focus-silent text-[22px] font-bold text-text outline-none"
+      >
+        La finalisation prend un peu plus de temps
+      </h1>
+      <p className="mt-2 max-w-[440px] text-[13.5px] leading-relaxed text-soft">
+        Votre instance <b className="text-text">{companyName}</b> est en cours de
+        finalisation. Elle est peut-être déjà accessible — essayez d&apos;y accéder
+        ci-dessous. Cette page se met à jour automatiquement, et vous recevrez un
+        e-mail dès qu&apos;elle sera prête.
+      </p>
+
+      <div className="mt-8 flex w-full max-w-[360px] flex-col gap-3">
+        <a
+          href={erpUrl}
+          className="group flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-accent-dark text-[13.5px] font-bold text-white shadow-card transition-all hover:-translate-y-px hover:shadow-lift"
+        >
+          Accéder à mon ERP
+          <Icon
+            name="arrow-right"
+            size={18}
+            className="transition-transform group-hover:translate-x-1"
+          />
+        </a>
+        <a
+          href={portalUrl}
+          className="flex h-11 w-full items-center justify-center rounded-xl border border-border text-[13.5px] font-bold text-text transition-colors hover:bg-content"
+        >
+          Accéder à mon espace
+        </a>
+      </div>
     </div>
   );
 }
