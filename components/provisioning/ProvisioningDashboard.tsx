@@ -100,20 +100,10 @@ export default function ProvisioningDashboard({
     };
   }, [done, errored, notFound, instanceRef]);
 
-  // À la fin du déploiement, on déclenche (une seule fois) l'e-mail « prêt ».
-  // L'idempotence est aussi garantie côté serveur (`claimReadyNotification`).
-  const notifiedRef = useRef(false);
-  useEffect(() => {
-    if (!done || notifiedRef.current) return;
-    notifiedRef.current = true;
-    void fetch("/api/provisioning/notify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ref: instanceRef }),
-    }).catch(() => {
-      // Échec réseau : non bloquant (l'écran reste « prêt »).
-    });
-  }, [done, instanceRef]);
+  // NB : l'e-mail « votre ERP est prêt » n'est plus envoyé par l'application.
+  // Il est désormais émis **côté serveur** par SellYourSaas à la fin du
+  // déploiement (cron de provisioning), ce qui est plus fiable : l'envoi ne
+  // dépend plus de l'onglet de suivi resté ouvert dans le navigateur.
 
   if (notFound) return <ProvisioningNotFound job={job} />;
   if (errored) return <ProvisioningError job={job} />;
@@ -187,7 +177,7 @@ function ProvisioningSuccess({
           description="Votre logiciel de gestion au quotidien : clients, devis, factures, stock…"
           login={
             <>
-              Identifiant <b className="text-text">admin</b> + le mot de passe
+              Identifiant <b className="text-text">admin </b> + le mot de passe
               choisi à l&apos;inscription.
             </>
           }
