@@ -26,6 +26,7 @@ const PROGISEIZE: RawCompany = {
     libelle_voie: "DENIS PAPIN",
     code_postal: "16160",
     libelle_commune: "GOND-PONTOUVRE",
+    departement: "16",
     activite_principale: "62.02A",
   },
   dirigeants: [
@@ -47,6 +48,7 @@ describe("mapSearchResult", () => {
       address: "12 RUE DENIS PAPIN", // numéro + type + libellé (sans CP/ville)
       zip: "16160",
       town: "GOND-PONTOUVRE",
+      department: "16",
       naf: "62.02A",
       legalForm: "57", // 2 premiers chiffres de nature_juridique
       tvaIntra: "FR12838722379",

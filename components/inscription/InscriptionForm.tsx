@@ -190,6 +190,7 @@ export default function InscriptionForm({ domain, job, billing }: Props) {
                   address: company?.address ?? "",
                   zip: company?.zip ?? "",
                   town: company?.town ?? "",
+                  departement: company?.department ?? "",
                   naf: company?.naf ?? "",
                   // N° TVA intracommunautaire si l'API en a fourni un.
                   tva: company?.tvaIntra ?? "",

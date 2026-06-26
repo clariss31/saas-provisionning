@@ -60,6 +60,8 @@ export type CreateInstanceInput = {
   zip?: string;
   /** Commune du siège. */
   town?: string;
+  /** Code département INSEE du siège (ex. « 16 »), résolu en état Dolibarr côté master. */
+  departement?: string;
   /** Code APE/NAF de l'activité principale. */
   naf?: string;
   /** N° de TVA intracommunautaire (depuis l'API SIRENE, si disponible). */
@@ -227,6 +229,7 @@ export async function createInstance(
     address: input.address ?? "",
     zip: input.zip ?? "",
     town: input.town ?? "",
+    departement: input.departement ?? "",
     siren: input.siren ?? "",
     siret: input.siret ?? "",
     ape: input.naf ?? "",

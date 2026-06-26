@@ -24,6 +24,7 @@ const PROGISEIZE: CompanyResult = {
   address: "12 RUE DENIS PAPIN",
   zip: "16160",
   town: "GOND-PONTOUVRE",
+  department: "16",
   naf: "62.02A",
   legalForm: "57",
   tvaIntra: "FR12838722379",

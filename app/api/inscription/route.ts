@@ -38,6 +38,7 @@ type InscriptionBody = {
   address?: unknown;
   zip?: unknown;
   town?: unknown;
+  departement?: unknown;
   naf?: unknown;
   tva?: unknown;
 };
@@ -83,6 +84,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const address = asString(body.address).trim();
   const zip = asString(body.zip).trim();
   const town = asString(body.town).trim();
+  const departement = asString(body.departement).trim();
   const naf = asString(body.naf).trim();
   const tva = asString(body.tva).trim();
 
@@ -132,6 +134,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       address,
       zip,
       town,
+      departement,
       naf,
       tva,
     });

@@ -26,6 +26,7 @@ type RawSiege = {
   libelle_voie?: string;
   code_postal?: string;
   libelle_commune?: string;
+  departement?: string;
   activite_principale?: string;
 };
 
@@ -77,6 +78,8 @@ export type CompanyResult = {
   zip: string;
   /** Commune du siège. */
   town: string;
+  /** Code département INSEE du siège (ex. « 16 »), résolu côté master en état Dolibarr. */
+  department: string;
   /** Code APE/NAF de l'activité principale. */
   naf: string;
   /** Code forme juridique Dolibarr (2 chiffres, ex. « 57 » = SAS) dérivé du SIREN. */
@@ -158,6 +161,7 @@ export function mapSearchResult(raw: RawCompany): CompanyResult {
     address: formatAddress(raw),
     zip: str(siege.code_postal),
     town: str(siege.libelle_commune),
+    department: str(siege.departement),
     naf: str(siege.activite_principale),
     legalForm: deriveLegalForm(raw),
     tvaIntra: firstVatNumber(raw),
