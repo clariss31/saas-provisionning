@@ -62,6 +62,8 @@ export type CreateInstanceInput = {
   town?: string;
   /** Code APE/NAF de l'activité principale. */
   naf?: string;
+  /** N° de TVA intracommunautaire (depuis l'API SIRENE, si disponible). */
+  tva?: string;
 };
 
 /** Référence d'une instance créée + son URL finale. */
@@ -228,6 +230,10 @@ export async function createInstance(
     siren: input.siren ?? "",
     siret: input.siret ?? "",
     ape: input.naf ?? "",
+    // Forme juridique = code Dolibarr à 2 chiffres (cf. LEGAL_FORMS du tunnel).
+    formejuridique: input.legalStatus ?? "",
+    // N° de TVA intracommunautaire (depuis l'API SIRENE).
+    tva: input.tva ?? "",
     // Assujettissement TVA de l'entreprise du client → pilote FACTURE_TVAOPTION
     // de l'instance (distinct de la facturation DoliCloud). 1 = TVA, 0 = franchise.
     vatoption: input.vatLiable ? "1" : "0",

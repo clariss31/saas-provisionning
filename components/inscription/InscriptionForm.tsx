@@ -16,10 +16,7 @@ import { type SubdomainStatus } from "./useSubdomainCheck";
 import ModernField, { MODERN_CONTROL } from "./ModernField";
 import DeployingView from "@/components/provisioning/DeployingView";
 import { scorePassword, PASSWORD_MIN_LENGTH } from "@/lib/instances/password";
-import {
-  mapNatureJuridiqueToLegalStatus,
-  type CompanyResult,
-} from "@/lib/instances/company";
+import { type CompanyResult } from "@/lib/instances/company";
 
 type Props = {
   /** Domaine racine des instances (fourni par le serveur, ex. « pichinov.fr »). */
@@ -36,16 +33,54 @@ type VatAnswer = "" | "oui" | "non";
 /** Libellés des étapes (stepper). */
 const STEPS = ["Identité", "Fiscalité", "Identifiants"] as const;
 
-/** Statuts juridiques proposés (US fiscalité). */
-const LEGAL_STATUSES = [
-  { value: "auto-entrepreneur", label: "Auto-entrepreneur / Micro-entreprise" },
-  { value: "ei", label: "Entreprise individuelle (EI)" },
-  { value: "eurl", label: "EURL" },
-  { value: "sarl", label: "SARL" },
-  { value: "sasu", label: "SASU" },
-  { value: "sas", label: "SAS" },
-  { value: "sa", label: "SA" },
-  { value: "autre", label: "Autre" },
+/**
+ * Types d'identité légale = dictionnaire **forme juridique** de Dolibarr (FR,
+ * `c_forme_juridique`). La `value` est le **code Dolibarr à 2 chiffres**, qui
+ * correspond aux 2 premiers chiffres du code INSEE `nature_juridique` renvoyé par
+ * l'API SIRENE → permet le pré-remplissage ET la propagation directe vers
+ * `MAIN_INFO_SOCIETE_FORME_JURIDIQUE` de l'instance déployée.
+ */
+const LEGAL_FORMS = [
+  { value: "9", label: "Organisme de placement collectif en valeurs mobilières sans personnalité morale" },
+  { value: "10", label: "Entrepreneur individuel" },
+  { value: "21", label: "Indivision" },
+  { value: "22", label: "Société créée de fait" },
+  { value: "23", label: "Société en participation" },
+  { value: "24", label: "Fiducie" },
+  { value: "27", label: "Paroisse hors zone concordataire" },
+  { value: "28", label: "Assujetti unique à la TVA" },
+  { value: "29", label: "Autre groupement de droit privé non doté de la personnalité morale" },
+  { value: "31", label: "Personne morale de droit étranger, immatriculée au RCS" },
+  { value: "32", label: "Personne morale de droit étranger, non immatriculée au RCS" },
+  { value: "41", label: "Établissement public ou régie à caractère industriel ou commercial" },
+  { value: "51", label: "Société coopérative commerciale particulière" },
+  { value: "52", label: "Société en nom collectif" },
+  { value: "53", label: "Société en commandite" },
+  { value: "54", label: "Société à responsabilité limitée (SARL)" },
+  { value: "55", label: "Société anonyme à conseil d'administration" },
+  { value: "56", label: "Société anonyme à directoire" },
+  { value: "57", label: "Société par actions simplifiée (SAS)" },
+  { value: "58", label: "Société européenne" },
+  { value: "61", label: "Caisse d'épargne et de prévoyance" },
+  { value: "62", label: "Groupement d'intérêt économique (GIE)" },
+  { value: "63", label: "Société coopérative agricole" },
+  { value: "64", label: "Société d'assurance mutuelle" },
+  { value: "65", label: "Société civile" },
+  { value: "66", label: "Sociétés publiques locales" },
+  { value: "69", label: "Autre personne morale de droit privé inscrite au RCS" },
+  { value: "71", label: "Administration de l'État" },
+  { value: "72", label: "Collectivité territoriale" },
+  { value: "73", label: "Établissement public administratif" },
+  { value: "74", label: "Personne morale de droit public administratif" },
+  { value: "81", label: "Organisme gérant un régime de protection sociale à adhésion obligatoire" },
+  { value: "82", label: "Organisme mutualiste" },
+  { value: "83", label: "Comité d'entreprise" },
+  { value: "84", label: "Organisme professionnel" },
+  { value: "85", label: "Organisme de retraite à adhésion non obligatoire" },
+  { value: "91", label: "Syndicat de propriétaires" },
+  { value: "92", label: "Association loi 1901 ou assimilé" },
+  { value: "93", label: "Fondation" },
+  { value: "99", label: "Autre personne morale de droit privé" },
 ] as const;
 
 /** Motif e-mail simple mais sûr (aucun espace → aucun CR/LF). */
@@ -156,6 +191,8 @@ export default function InscriptionForm({ domain, job, billing }: Props) {
                   zip: company?.zip ?? "",
                   town: company?.town ?? "",
                   naf: company?.naf ?? "",
+                  // N° TVA intracommunautaire si l'API en a fourni un.
+                  tva: company?.tvaIntra ?? "",
                 }),
               });
               if (!res.ok) {
@@ -207,9 +244,11 @@ export default function InscriptionForm({ domain, job, billing }: Props) {
                 onValueChange={setCompanyName}
                 onSelect={(c) => {
                   setCompany(c);
-                  // Pré-remplit le statut juridique (étape 2) si déductible.
-                  const mapped = mapNatureJuridiqueToLegalStatus(c.natureJuridique);
-                  if (mapped) setLegalStatus(mapped);
+                  // Pré-remplit la forme juridique (étape 2) si l'API l'a fournie
+                  // et qu'elle figure dans la liste Dolibarr.
+                  if (c.legalForm && LEGAL_FORMS.some((f) => f.value === c.legalForm)) {
+                    setLegalStatus(c.legalForm);
+                  }
                 }}
                 onSubdomainStatus={setSubdomainStatus}
                 domain={domain}
@@ -245,7 +284,7 @@ export default function InscriptionForm({ domain, job, billing }: Props) {
                 description="Votre statut configure la TVA et les mentions légales de votre instance."
               />
 
-              <ModernField id="legalStatus" label="Statut juridique">
+              <ModernField id="legalStatus" label="Type d'identité légale">
                 <select
                   id="legalStatus"
                   name="legalStatus"
@@ -257,9 +296,9 @@ export default function InscriptionForm({ domain, job, billing }: Props) {
                   }`}
                 >
                   <option value="" disabled>
-                    Sélectionnez votre statut
+                    Sélectionnez votre forme juridique
                   </option>
-                  {LEGAL_STATUSES.map((s) => (
+                  {LEGAL_FORMS.map((s) => (
                     <option key={s.value} value={s.value}>
                       {s.label}
                     </option>

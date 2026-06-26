@@ -1,7 +1,8 @@
 import {
   mapSearchResult,
   deriveManager,
-  mapNatureJuridiqueToLegalStatus,
+  deriveLegalForm,
+  firstVatNumber,
   type RawCompany,
 } from "./company";
 
@@ -14,8 +15,9 @@ const PROGISEIZE: RawCompany = {
   siren: "838722379",
   nom_complet: "PROGISEIZE",
   nom_raison_sociale: "PROGISEIZE",
-  nature_juridique: "5710",
+  nature_juridique: "5710", // SAS → code Dolibarr « 57 »
   categorie_entreprise: "PME",
+  complements: { tva: ["FR12838722379"] },
   siege: {
     siret: "83872237900032",
     adresse: "12 RUE DENIS PAPIN 16160 GOND-PONTOUVRE",
@@ -46,7 +48,8 @@ describe("mapSearchResult", () => {
       zip: "16160",
       town: "GOND-PONTOUVRE",
       naf: "62.02A",
-      natureJuridique: "5710",
+      legalForm: "57", // 2 premiers chiffres de nature_juridique
+      tvaIntra: "FR12838722379",
       manager: "Anthony Damhet",
     });
   });
@@ -59,8 +62,9 @@ describe("mapSearchResult", () => {
     };
     const out = mapSearchResult(raw);
     expect(out.name).toBe("ACME");
-    // Aucun composant de voie → repli sur l'adresse complète du siège.
     expect(out.address).toBe("1 PLACE TEST 75001 PARIS");
+    expect(out.legalForm).toBe("");
+    expect(out.tvaIntra).toBe("");
     expect(out.manager).toBeNull();
   });
 });
@@ -91,16 +95,28 @@ describe("deriveManager", () => {
   });
 });
 
-describe("mapNatureJuridiqueToLegalStatus", () => {
-  it("mappe les familles de codes INSEE connues", () => {
-    expect(mapNatureJuridiqueToLegalStatus("1000")).toBe("ei");
-    expect(mapNatureJuridiqueToLegalStatus("5499")).toBe("sarl");
-    expect(mapNatureJuridiqueToLegalStatus("5710")).toBe("sas");
-    expect(mapNatureJuridiqueToLegalStatus("5599")).toBe("sa");
+describe("deriveLegalForm", () => {
+  it("réduit le code INSEE 4 chiffres au code Dolibarr 2 chiffres", () => {
+    expect(deriveLegalForm({ nature_juridique: "5710" })).toBe("57");
+    expect(deriveLegalForm({ nature_juridique: "5499" })).toBe("54");
+    expect(deriveLegalForm({ nature_juridique: "1000" })).toBe("10");
+    expect(deriveLegalForm({ nature_juridique: "9220" })).toBe("92");
   });
 
-  it("renvoie une chaîne vide si non déterminable", () => {
-    expect(mapNatureJuridiqueToLegalStatus("9220")).toBe("");
-    expect(mapNatureJuridiqueToLegalStatus("")).toBe("");
+  it("renvoie une chaîne vide si absent", () => {
+    expect(deriveLegalForm({})).toBe("");
+    expect(deriveLegalForm({ nature_juridique: "" })).toBe("");
+  });
+});
+
+describe("firstVatNumber", () => {
+  it("lit le 1er n° TVA, à la racine ou dans complements", () => {
+    expect(firstVatNumber({ tva: ["FR123", "FR456"] })).toBe("FR123");
+    expect(firstVatNumber({ complements: { tva: ["FR789"] } })).toBe("FR789");
+  });
+
+  it("renvoie une chaîne vide si aucun n° TVA", () => {
+    expect(firstVatNumber({})).toBe("");
+    expect(firstVatNumber({ complements: {} })).toBe("");
   });
 });

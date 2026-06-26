@@ -45,6 +45,9 @@ export type RawCompany = {
   adresse_complete?: string;
   nature_juridique?: string;
   categorie_entreprise?: string;
+  /** Numéros de TVA intracommunautaire actifs (selon la version de l'API). */
+  tva?: string[];
+  complements?: { tva?: string[] };
   siege?: RawSiege;
   dirigeants?: RawDirigeant[];
 };
@@ -76,8 +79,10 @@ export type CompanyResult = {
   town: string;
   /** Code APE/NAF de l'activité principale. */
   naf: string;
-  /** Code de catégorie juridique INSEE (sert au pré-remplissage du statut). */
-  natureJuridique: string;
+  /** Code forme juridique Dolibarr (2 chiffres, ex. « 57 » = SAS) dérivé du SIREN. */
+  legalForm: string;
+  /** N° de TVA intracommunautaire (1er actif) si l'API en fournit un. */
+  tvaIntra: string;
   /** Nom du dirigeant déduit (« Prénom Nom »), ou `null` si indéterminable. */
   manager: string | null;
 };
@@ -154,27 +159,35 @@ export function mapSearchResult(raw: RawCompany): CompanyResult {
     zip: str(siege.code_postal),
     town: str(siege.libelle_commune),
     naf: str(siege.activite_principale),
-    natureJuridique: str(raw.nature_juridique),
+    legalForm: deriveLegalForm(raw),
+    tvaIntra: firstVatNumber(raw),
     manager: deriveManager(raw),
   };
 }
 
 /**
- * Mappe un code de **catégorie juridique INSEE** (`nature_juridique`) vers l'un
- * des statuts proposés à l'étape « Fiscalité » du tunnel (cf. `LEGAL_STATUSES`
- * dans `InscriptionForm`). Best-effort, par préfixe de code :
- *  - `10xx` → entrepreneur individuel (`ei`) ;
- *  - `54xx` → SARL (inclut l'EURL, indissociable par ce code) ;
- *  - `57xx` → SAS (inclut la SASU) ;
- *  - `55xx` → SA.
+ * Dérive le **code forme juridique Dolibarr** (dictionnaire `c_forme_juridique`,
+ * codes FR à **2 chiffres**) à partir de `nature_juridique` de l'API, qui est le
+ * code catégorie juridique INSEE à **4 chiffres**. Le code Dolibarr correspond
+ * aux 2 premiers chiffres : `5710` (SAS) → `57`, `5499` (SARL) → `54`,
+ * `1000` (entrepreneur individuel) → `10`, `9220` (association) → `92`.
  *
- * @returns le slug de statut, ou `""` si non déterminable (l'utilisateur choisit).
+ * @returns le code à 2 chiffres, ou `""` si indéterminable.
  */
-export function mapNatureJuridiqueToLegalStatus(natureJuridique: string): string {
-  const code = str(natureJuridique);
-  if (code.startsWith("10")) return "ei";
-  if (code.startsWith("54")) return "sarl";
-  if (code.startsWith("57")) return "sas";
-  if (code.startsWith("55")) return "sa";
-  return "";
+export function deriveLegalForm(raw: RawCompany): string {
+  const code = str(raw.nature_juridique);
+  return code.length >= 2 ? code.slice(0, 2) : "";
+}
+
+/**
+ * Récupère le 1er n° de TVA intracommunautaire actif renvoyé par l'API. Selon la
+ * version, la liste se trouve à la racine (`tva`) ou dans `complements.tva`.
+ */
+export function firstVatNumber(raw: RawCompany): string {
+  const list = Array.isArray(raw.tva)
+    ? raw.tva
+    : Array.isArray(raw.complements?.tva)
+      ? raw.complements?.tva
+      : [];
+  return str(list?.[0]);
 }

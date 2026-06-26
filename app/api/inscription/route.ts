@@ -39,6 +39,7 @@ type InscriptionBody = {
   zip?: unknown;
   town?: unknown;
   naf?: unknown;
+  tva?: unknown;
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -83,6 +84,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const zip = asString(body.zip).trim();
   const town = asString(body.town).trim();
   const naf = asString(body.naf).trim();
+  const tva = asString(body.tva).trim();
 
   // --- Validation serveur ---------------------------------------------------
   if (email.length > 254 || !EMAIL_RE.test(email)) {
@@ -131,6 +133,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       zip,
       town,
       naf,
+      tva,
     });
 
     return NextResponse.json({

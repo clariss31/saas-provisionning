@@ -44,7 +44,7 @@ export async function GET(
 
   try {
     const res = await fetch(
-      `${API_URL}?q=${encodeURIComponent(q)}&limit=${RESULTS_LIMIT}`,
+      `${API_URL}?q=${encodeURIComponent(q)}&per_page=${RESULTS_LIMIT}`,
       { headers: { Accept: "application/json" }, cache: "no-store" },
     );
     if (!res.ok) {

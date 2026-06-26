@@ -25,7 +25,8 @@ const PROGISEIZE: CompanyResult = {
   zip: "16160",
   town: "GOND-PONTOUVRE",
   naf: "62.02A",
-  natureJuridique: "5710",
+  legalForm: "57",
+  tvaIntra: "FR12838722379",
   manager: "Anthony Damhet",
 };
 
